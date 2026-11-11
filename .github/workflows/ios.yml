@@ -1,0 +1,66 @@
+# Builds an unsigned WAVO IPA on GitHub's macOS runner (no Mac needed).
+# The IPA has no signature, so install it with Sideloadly or AltStore using a
+# free Apple ID — the app then runs for 7 days and can be re-signed again.
+name: iOS build (unsigned IPA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Assemble the web bundle (www/)
+        run: node scripts/ios-web.mjs
+
+      - name: Generate icon + splash
+        run: node scripts/ios-assets.mjs
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: CocoaPods install
+        run: |
+          cd ios/App
+          pod install
+
+      - name: Archive (no code signing)
+        run: |
+          cd ios/App
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath build/WAVO.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R ios/App/build/WAVO.xcarchive/Products/Applications/App.app Payload/
+          zip -qr WAVO-unsigned.ipa Payload
+          ls -lh WAVO-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WAVO-iOS-unsigned
+          path: WAVO-unsigned.ipa
+          retention-days: 90

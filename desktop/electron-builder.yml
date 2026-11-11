@@ -1,0 +1,53 @@
+appId: dev.wavo.desktop
+productName: WAVO
+copyright: Copyright © 2026 WAVO
+
+directories:
+  output: ../release
+  buildResources: build
+
+files:
+  - main.cjs
+  - preload.cjs
+  - build/icon.png
+
+extraResources:
+  - from: app-server
+    to: app-server
+    filter:
+      - "**/*"
+
+asar: true
+compression: normal
+removePackageScripts: true
+electronLanguages:
+  - en-US
+  - he
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  legalTrademarks: WAVO
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: WAVO
+  uninstallDisplayName: WAVO
+  deleteAppDataOnUninstall: false
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+portable:
+  artifactName: ${productName}-Portable-${version}.${ext}

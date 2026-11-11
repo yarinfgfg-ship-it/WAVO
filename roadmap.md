@@ -1,0 +1,11 @@
+# Roadmap
+- [x] Playlist pictures
+- [x] Playlists in the existing sidebar (rail), not a new panel
+- [x] Lyrics for נגד כל הסיכויים
+- [x] Account required for playlists and likes
+- [x] Phone + PC check
+- [x] Faster lyrics loading
+- [x] Security pass (scan, XSS fixes, limits, unused code, package fixes)
+- [x] Deep security scan reviewed
+- [x] YouTube key shared by all users, server-only
+- [x] Lyrics: wrapped lines overlap
