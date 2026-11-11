@@ -7,8 +7,8 @@ declare global {
   }
 }
 
-const HTML_VERSION = 46;
-const SCRIPT_VERSION = 45;
+const HTML_VERSION = 47;
+const SCRIPT_VERSION = 46;
 const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js"];
 
 export const Route = createFileRoute("/")({

@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const src = path.join(root, "public");
 const out = path.join(root, "www");
 
-const VERSION = 6;
+const VERSION = 7;
 const q = (f) => `${f}?v=${VERSION}`;
 
 function replace(text, from, to, label) {

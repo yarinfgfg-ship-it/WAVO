@@ -632,7 +632,7 @@ function preloadYtApi() {
 preloadYtApi();
 
 /* Ã—Â©Ã—ÂªÃ—â„¢ Ã—â€Ã—â€ºÃ—ÂªÃ—â€¢Ã—â€˜Ã—â€¢Ã—Âª Ã—â€Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢Ã—â€¢Ã—Âª Ã—Â©Ã—Å“ Ã—â€Ã—Â Ã—â€™Ã—Å¸. nocookie Ã—Å“Ã—Â Ã—ÂªÃ—Å“Ã—â€¢Ã—â„¢Ã—â€ Ã—â€˜Ã—Â¢Ã—â€¢Ã—â€™Ã—â„¢Ã—â€¢Ã—Âª Ã—Â¦Ã—â€œ-Ã—Â©Ã—Å“Ã—â„¢Ã—Â©Ã—â„¢, Ã—â€¢Ã—Å“Ã—â€ºÃ—Å¸ Ã—â€Ã—â„¢Ã—Â Ã—â€Ã—Â¨Ã—ÂÃ—Â©Ã—â€¢Ã—Â Ã—â€. */
-const YT_HOSTS = ["https://www.youtube-nocookie.com", "https://www.youtube.com"];
+const YT_HOSTS = ["https://www.youtube.com", "https://www.youtube.com"];
 let hostIdx = 0, hostFlip = false;
 
 function startApi() {
