@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const src = path.join(root, "public");
 const out = path.join(root, "www");
 
-const VERSION = 1;
+const VERSION = 2;
 const q = (f) => `${f}?v=${VERSION}`;
 
 function replace(text, from, to, label) {
@@ -43,12 +43,12 @@ html = replace(
   html,
   '<link rel="stylesheet" href="style.css?v=11">',
   [
-    `<link rel="stylesheet" href="${q("style.css")}">`,
-    `<link rel="stylesheet" href="${q("extras.css")}">`,
-    `<link rel="stylesheet" href="${q("polish.css")}">`,
+    `<link rel="stylesheet" href="${q("wavo/style.css")}">`,
+    `<link rel="stylesheet" href="${q("wavo/extras.css")}">`,
+    `<link rel="stylesheet" href="${q("wavo/polish.css")}">`,
     '<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet">',
-    `<link rel="stylesheet" href="${q("fresh.css")}">`,
-    `<link rel="stylesheet" href="${q("ios.css")}">`,
+    `<link rel="stylesheet" href="${q("wavo/fresh.css")}">`,
+    `<link rel="stylesheet" href="${q("wavo/ios.css")}">`,
   ].join("\n  "),
   "stylesheet stack",
 );
@@ -59,12 +59,32 @@ html = replace(
   html,
   /  <script src="songs\.js\?v=11"><\/script>[\s\S]*?<script src="script\.js\?v=11"><\/script>/,
   ["ios.js", "songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js"]
-    .map((f) => `  <script src="${q(f)}"></script>`)
+    .map((f) => `  <script src="${q("wavo/" + f)}"></script>`)
     .join("\n"),
   "script order",
 );
 
 html = replace(html, 'src="/favicon.png"', 'src="favicon.png"', "rail logo path");
+/* ---------- account bootstrap (Supabase) ----------
+   The standalone bundle has no Nitro route to set window.WAVO, so the email
+   sign-in needs the Supabase client here. Values come from the environment
+   (GitHub Secrets in CI) so no credentials are committed to the repo. */
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+if (SUPABASE_URL && SUPABASE_KEY) {
+  const boot =
+    '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n' +
+    "  <script>\n" +
+    "    window.WAVO = window.WAVO || {};\n" +
+    `    window.WAVO.supabase = supabase.createClient(${JSON.stringify(SUPABASE_URL)}, ${JSON.stringify(SUPABASE_KEY)});\n` +
+    "    window.WAVO.signOut = function () { return window.WAVO.supabase.auth.signOut(); };\n" +
+    "  </script>\n  ";
+  if (!html.includes('src="wavo/ios.js')) throw new Error("ios build: script anchor not found for supabase bootstrap");
+  html = html.replace('<script src="wavo/ios.js', boot + '<script src="wavo/ios.js');
+} else {
+  console.log("ios build: no Supabase env - account panel will be offline");
+}
+
 fs.writeFileSync(path.join(out, "index.html"), html);
 
 /* ---------- script.js ---------- */

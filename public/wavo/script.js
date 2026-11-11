@@ -11,7 +11,6 @@ const miniCover = el("miniCover"), npTitle = el("npTitle"), npArtist = el("npArt
 const playingNow = el("playingNow"), toggle = el("toggle");
 const fill = el("fill"), bar = el("bar"), curTime = el("curTime"), totTime = el("totTime");
 const volBar = el("volBar"), volFill = el("volFill");
-const winClose = el("winClose"), winFull = el("winFull"), winHide = el("winHide");
 
 const CHUNK = 60;
 const byId = {};
@@ -471,7 +470,7 @@ el("fwd").addEventListener("click", () => window.history.forward());
 /* ---------- מנועי ניגון ---------- */
 function playTrack(tr, start) {
   if (!tr) return;
-  if (!autoSwitch) { triedUids = new Set(); triedKey = ""; altPlan = null; }
+  if (!autoSwitch) { triedUids = new Set(); triedKey = ""; }
   autoSwitch = false;
   track = tr;
   current = tr.src === "catalog" ? tr.i : -1;
@@ -504,21 +503,9 @@ function playYt(tr, start) {
     stage.classList.remove("note");
     stage.innerHTML = '<div class="frame"><div id="ytPlayer"></div></div>';
     yt = null;
-  }  loadYt(tr.vid, start);
-  /* בדיקה מקדימה: אם היוצר חסם הטמעה — מחליפים מקור לפני שהשגיאה קופצת */
-  if (tr.vid && typeof ytEmbedStatus === "function") {
-    const uid = tr.uid;
-    ytEmbedStatus([tr.vid])
-      .then((status) => {
-        if (status.get(tr.vid) !== false) return;
-        if (!track || track.uid !== uid || engine !== "yt") return;
-        tryOtherSource(track, 150);
-      })
-      .catch(() => {});
   }
+  loadYt(tr.vid, start);
 }
-
-
 
 function playAudio(tr, start) {
   engine = "audio";
@@ -558,7 +545,7 @@ function audioFail(tr, e) {
     </p>`;
 }
 
-audioEl.addEventListener("playing", () => { skipBudget = 6; spin(false); setPlaying(true); totTime.textContent = mmss(duration()); });
+audioEl.addEventListener("playing", () => { spin(false); setPlaying(true); totTime.textContent = mmss(duration()); });
 audioEl.addEventListener("pause", () => setPlaying(false));
 audioEl.addEventListener("waiting", () => spin(true));
 audioEl.addEventListener("ended", () => (repeat ? playTrack(track, true) : step(1)));
@@ -699,7 +686,6 @@ function plainEmbed() {
 }
 
 function onYtState(e) {
-  if (e.data === 1) skipBudget = 6;
   if (e.data === 1 || e.data === 2 || e.data === 3) stopVerify();
   const d = safe(() => e.target.getDuration(), 0);
   if (d) {
@@ -716,20 +702,17 @@ function onYtState(e) {
 function onYtError(code) {
   stopVerify();
   const id = track ? track.vid : want;
-  /* 100/101/150/153: הסרטון לא נמצא או שהיוצר סגר את ההטמעה —
-     ניסיון חוזר באותו נגן לא יעזור, מחפשים עותק אחר של השיר. */
-  const blocked = code === 100 || code === 101 || code === 150 || code === 153;
-  if (!blocked && !hostFlip && YT_HOSTS[hostIdx + 1]) {
+  /* כתובת הנגן השנייה היא התיקון כשהדפדפן חוסם עוגיות של אתר חיצוני */
+  if (!hostFlip && YT_HOSTS[hostIdx + 1]) {
     hostFlip = true;
     hostIdx++;
     return setTimeout(() => freshPlayer(id), 500);
   }
-  if (!blocked && !retried && track) {
+  if (!retried && track) {
     retried = true;
     return setTimeout(() => freshPlayer(id), 1000);
   }
   if (altSource()) return;
-  if (track) return tryOtherSource(track, code);
   note(id, code);
 }
 
@@ -746,128 +729,6 @@ function altSource() {
   autoSwitch = true;
   playTrack(alt, true);
   return true;
-}
-
-/* ---------- מקור חלופי כשהסרטון חסום להטמעה ----------
-   גם קטלוג וגם חיפוש יוטיוב מכילים סרטונים שהיוצר סגר להטמעה (קוד 150).
-   במקום להיתקע, מחפשים עותק אחר של אותו שיר — יוטיוב, ואם אין — אודיו מ-Audius. */
-let altPlan = null, altBusy = false;
-let skipBudget = 6, lastSkipAt = 0;
-const altQueryCache = new Map();
-
-/* מילות קישור ומילות רעש מכותרות יוטיוב — לא משפיעות על זהות השיר */
-const NOISE_WORDS = new Set([
-  "official", "video", "lyric", "lyrics", "audio", "hd", "hq", "mv", "feat", "ft", "prod",
-  "live", "remaster", "remastered", "version", "cover", "remix", "instrumental", "acoustic", "music",
-  "קליפ", "מילים", "רשמי", "הופעה", "לייב", "אודיו", "גרסה", "קאבר", "רמיקס", "אינסטרומנטל", "אקוסטי", "מקורי",
-]);
-
-const titleWords = (v) =>
-  normKey(v, "")
-    .split(" ")
-    .filter((w) => w.length > 1 && !NOISE_WORDS.has(w) && !/^(19|20)\d{2}$/.test(w));
-
-/* אותה כותרת? משווים את שם השיר עצמו (בלי שם האמן ובלי מילות רעש).
-   התאמה חלקית הייתה מנגנת שיר אחר של אותו אמן — לכן הסף גבוה. */
-function sameSong(a, b, artist) {
-  const drop = new Set(titleWords(artist || ""));
-  const A = titleWords(a).filter((w) => !drop.has(w));
-  const B = titleWords(b);
-  if (!A.length || !B.length) return false;
-  let hits = 0;
-  for (const w of A) {
-    if (B.includes(w)) { hits += 1; continue; }
-    if (w.length > 3 && B.some((x) => x.length > 3 && (x.includes(w) || w.includes(x)))) hits += 0.5;
-  }
-  return hits / A.length >= (A.length <= 2 ? 1 : 0.7);
-}
-
-/* כל בקשה מוגבלת בזמן: חיפוש איטי או תקוע לא משאיר את הנגן על "מחפשים…" */
-const withTimeout = (p, ms, fallback) =>
-  Promise.race([p, new Promise((res) => setTimeout(() => res(fallback), ms))]);
-
-async function altCandidates(tr) {
-  const out = [];
-  for (const t of playQueue) {
-    if (t.uid !== tr.uid && t.src !== "audius" && !triedUids.has(t.uid) && sameSong(tr.t, t.t, tr.a)) out.push(t);
-  }
-
-  const queries = [`${tr.t} ${tr.a}`.trim(), tr.t].map((q) => (q || "").trim()).filter(Boolean).slice(0, 2);
-  const matches = [];
-  const collect = (items) => {
-    for (const t of items || []) {
-      if (!t || t.src === "audius" || triedUids.has(t.uid) || !sameSong(tr.t, t.t, tr.a)) continue;
-      if (!matches.some((m) => m.uid === t.uid)) matches.push(t);
-    }
-  };
-  const fetchQuery = async (q, raw) => {
-    const cacheKey = (raw ? "raw:" : "api:") + q;
-    if (altQueryCache.has(cacheKey)) return altQueryCache.get(cacheKey);
-    let items = [];
-    try { items = await withTimeout(raw ? ytSearchRaw(q, 40) : ytSearch(q, 15), 5000, []); } catch (e) { items = []; }
-    altQueryCache.set(cacheKey, items);
-    return items;
-  };
-
-  /* קודם החיפוש המסונן (רק סרטונים שמאפשרים הטמעה), ורק אם אין — חיפוש גולמי */
-  for (const q of queries) {
-    collect(await fetchQuery(q, false));
-    if (matches.length) break;
-  }
-  if (!matches.length && queries[0]) collect(await fetchQuery(queries[0], true));
-
-  /* מסננים את מי שידוע שחסום ומעדיפים מי שנבדק ומאפשר הטמעה */
-  let status = new Map();
-  try { status = await withTimeout(ytEmbedStatus(matches.map((t) => t.vid)), 3500, new Map()); } catch (e) {}
-  const verified = matches.filter((t) => status.get(t.vid) === true);
-  const unknown = matches.filter((t) => status.get(t.vid) !== true && status.get(t.vid) !== false);
-  out.push(...verified, ...unknown);
-
-  if (out.length) return out;
-  try {
-    const audio = await withTimeout(audiusSearch(`${tr.t} ${tr.a}`.trim(), 10), 2500, []);
-    const hit = (audio || []).find((t) => sameSong(tr.t, t.t, tr.a) && (!tr.d || !t.d || Math.abs(t.d - tr.d) <= 60));
-    if (hit) out.push({ ...hit, uid: tr.uid, t: tr.t, a: tr.a, art: tr.art || hit.art, link: tr.link, d: hit.d || tr.d });
-  } catch (e) {}
-  return out;
-}
-
-/* מנגן את המועמד הבא לשיר; אם אזלו — מציגים את הודעת השגיאה */
-async function tryOtherSource(tr, code) {
-  if (altBusy) return;
-  altBusy = true;
-  triedUids.add(tr.uid);
-  try {
-    if (!altPlan) {
-      stage.classList.add("note");
-      stage.innerHTML = '<p class="notice">מחליפים לעותק אחר של אותו שיר…</p>';
-      const list = await altCandidates(tr);
-      altPlan = { list, index: 0 };
-    }
-    const next = altPlan.list[altPlan.index++];
-    if (!next) {
-      altPlan = null;
-      /* אין עותק עובד — לא עוצרים את המוזיקה: מדלגים לשיר הבא */
-      if (Date.now() - lastSkipAt > 20000) skipBudget = 6;
-      if (skipBudget > 0) {
-        skipBudget--;
-        lastSkipAt = Date.now();
-        setPlaying(false);
-        step(1);
-        return;
-      }
-      note(track ? track.vid : tr.vid, code);
-      return;
-    }
-    triedUids.add(next.uid);
-    autoSwitch = true;
-    playTrack(next, true);
-  } catch (e) {
-    altPlan = null;
-    note(track ? track.vid : tr.vid, code);
-  } finally {
-    altBusy = false;
-  }
 }
 
 const safe = (fn, d) => { try { const v = fn(); return v == null || isNaN(v) ? d : v; } catch (e) { return d; } };
@@ -1028,34 +889,6 @@ menuBtn.addEventListener("click", () => {
 document.querySelectorAll(".rail-btn").forEach((a) => a.addEventListener("click", closeMenu));
 
 el("npLike").innerHTML = HEART;
-
-/* ---------- בקרות חלון ---------- */
-winClose.addEventListener("click", () => { try { window.close(); } catch (e) {} });
-
-let full = false;
-winFull.addEventListener("click", () => {
-  const el = document.documentElement;
-  if (!full) {
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-  }
-});
-document.addEventListener("fullscreenchange", () => {
-  full = !!document.fullscreenElement;
-  if (winFull) winFull.classList.toggle("on", full);
-});
-
-let hidden = false;
-winHide.addEventListener("click", () => {
-  hidden = !hidden;
-  document.body.classList.toggle("app-hidden", hidden);
-  if (winHide) winHide.classList.toggle("on", hidden);
-  if (hidden) document.getElementById("menuBtn")?.setAttribute("aria-expanded", "false");
-});
-
 renderPlaylists();
 checkProviders();
 route();

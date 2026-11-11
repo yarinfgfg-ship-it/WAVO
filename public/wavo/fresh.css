@@ -80,12 +80,15 @@ body::before, body::after { display: none !important; }
 .prow img { border-radius: 6px !important; }
 
 /* inputs & misc */
-.search, .lib-search, input[type="search"], .lyr-search input {
+.search, .lib-search, input[type="search"], .acct-form input, .lyr-search input {
   background: var(--panel-2) !important; border: 1px solid var(--line) !important; box-shadow: none !important; border-radius: 999px;
 }
 .search:focus-within, .lib-search:focus-within { border-color: var(--a1) !important; }
 .track .fill, .vol .fill, #fill, #volFill { background: var(--a1) !important; box-shadow: none !important; }
-.wtoast { background: var(--panel-2) !important; border: 1px solid var(--line) !important; border-radius: var(--r) !important; box-shadow: var(--shadow) !important; }
+.avatar { background: var(--panel-2) !important; color: var(--text) !important; box-shadow: none !important; border: 1px solid var(--line); }
+.avatar.signed { background: var(--a1) !important; color: var(--ink) !important; }
+.acct, .wtoast { background: var(--panel-2) !important; border: 1px solid var(--line) !important; border-radius: var(--r) !important; box-shadow: var(--shadow) !important; }
+.acct-go { background: var(--a1) !important; color: var(--ink) !important; }
 .lib-add { border-color: var(--line) !important; }
 .lib-add:hover { border-color: var(--text) !important; }
 .lib-add.on { border-color: var(--a1) !important; color: var(--a1) !important; }

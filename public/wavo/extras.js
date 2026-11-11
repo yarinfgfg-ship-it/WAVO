@@ -1,5 +1,8 @@
-/* WAVO extras: a personal library kept on this device, playlists, and synced lyrics. */
+/* WAVO extras: account avatar, a personal library the user fills, and synced lyrics. */
 (function () {
+  const W = window.WAVO || {};
+  const sb = W.supabase;
+  let user = null;
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   /* ================= הספרייה האישית ================= */
@@ -9,16 +12,34 @@
   const writeLocal = () => localStorage.setItem(LOCAL, JSON.stringify(lib));
   const inLib = (k) => lib.some((x) => x.k === k);
 
-  function loadLib() {
-    lib = readLocal();
+  async function loadLib() {
+    if (user && sb) {
+      const { data, error } = await sb.from("library_items").select("item_key, kind, data, created_at").order("created_at", { ascending: false });
+      if (!error) {
+        lib = (data || []).map((r) => ({ ...r.data, k: r.item_key, kind: r.kind }));
+        // שירים שנשמרו לפני ההתחברות עוברים לחשבון
+        const local = readLocal().filter((x) => !inLib(x.k));
+        if (local.length) {
+          await sb.from("library_items").upsert(local.map((x) => ({ item_key: x.k, kind: x.kind, data: x })), { onConflict: "user_id,item_key" });
+          lib = [...local, ...lib];
+          localStorage.removeItem(LOCAL);
+        }
+      }
+    } else lib = readLocal();
     refresh();
   }
 
-  function toggleLib(item) {
+  async function toggleLib(item) {
     const had = inLib(item.k);
     lib = had ? lib.filter((x) => x.k !== item.k) : [item, ...lib];
     refresh();
-    writeLocal();
+    if (user && sb) {
+      const q = had
+        ? sb.from("library_items").delete().eq("item_key", item.k)
+        : sb.from("library_items").insert({ item_key: item.k, kind: item.kind, data: item });
+      const { error } = await q;
+      if (error) { toast("השמירה נכשלה"); return loadLib(); }
+    } else writeLocal();
     toast(had ? "הוסר מהספרייה" : "נוסף לספרייה");
   }
 
@@ -139,6 +160,77 @@
     b.classList.add("mini");
     row.appendChild(b);
   });
+
+  /* ================= עיגול המשתמש ================= */
+  const avatar = document.querySelector(".avatar");
+  let menu = null;
+  function paintAvatar() {
+    if (!avatar) return;
+    const name = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "";
+    const pic = user?.user_metadata?.avatar_url;
+    avatar.classList.toggle("signed", !!user);
+    avatar.setAttribute("role", "button");
+    avatar.setAttribute("tabindex", "0");
+    avatar.setAttribute("aria-label", user ? "החשבון שלי" : "התחברות");
+    avatar.textContent = user ? (name.trim()[0] || "?").toUpperCase() : "";
+    if (!user) avatar.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c1.4-3.2 4-4.6 7-4.6s5.6 1.4 7 4.6"/></svg>`;
+    void pic;
+  }
+  function closeAccount() { if (menu) { menu.remove(); menu = null; } }
+  function openAccount() {
+    if (menu) return closeAccount();
+    menu = document.createElement("div");
+    menu.className = "acct";
+    if (user) {
+      const name = user.user_metadata?.full_name || user.user_metadata?.name || "";
+      menu.innerHTML = `<div class="acct-who"><span class="acct-l">${esc((name || user.email || "?")[0].toUpperCase())}</span>
+        <span><b>${esc(name || "המשתמש שלי")}</b><small>${esc(user.email || "")}</small></span></div>
+        <p class="acct-note">הספרייה שלך נשמרת בחשבון ומסונכרנת בכל מכשיר</p>
+        <button class="acct-out">התנתק</button>`;
+      menu.querySelector(".acct-out").onclick = async () => { closeAccount(); await W.signOut(); };
+    } else {
+      menu.innerHTML = `<p class="acct-title">התחברות או הרשמה ל־WAVO</p>
+        <p class="acct-note">כדי לשמור את הספרייה שלך בכל מכשיר</p>
+        `;
+      let mode = "in";
+      const box = document.createElement("div");
+      menu.appendChild(box);
+      const paint = () => {
+        const up = mode === "up";
+        box.innerHTML = `<div class="acct-or">כניסה עם מייל</div>
+          <form class="acct-form">
+            <input type="email" required placeholder="אימייל" autocomplete="email">
+            <input type="password" required minlength="6" placeholder="סיסמה" autocomplete="${up ? "new-password" : "current-password"}">
+            <button class="acct-go" type="submit">${up ? "הרשמה" : "התחברות"}</button>
+            <p class="acct-msg"></p>
+          </form>
+          <p class="acct-switch">${up ? "כבר יש לך חשבון?" : "אין לך חשבון?"} <button type="button">${up ? "התחבר" : "הירשם"}</button></p>`;
+        box.querySelector(".acct-switch button").onclick = (e) => { e.stopPropagation(); mode = up ? "in" : "up"; paint(); };
+        const f = box.querySelector("form");
+        f.onsubmit = async (e) => {
+          e.preventDefault();
+          const [em, pw] = f.querySelectorAll("input");
+          const btn = f.querySelector(".acct-go"), msg = f.querySelector(".acct-msg");
+          btn.disabled = true; msg.className = "acct-msg"; msg.textContent = "";
+          const r = up
+            ? await sb.auth.signUp({ email: em.value.trim(), password: pw.value, options: { emailRedirectTo: location.origin } })
+            : await sb.auth.signInWithPassword({ email: em.value.trim(), password: pw.value });
+          btn.disabled = false;
+          if (r.error) {
+            msg.className = "acct-msg err";
+            msg.textContent = /invalid/i.test(r.error.message) ? "אימייל או סיסמה שגויים" : /registered/i.test(r.error.message) ? "האימייל כבר רשום — נסה להתחבר" : "משהו השתבש, נסה שוב";
+          } else if (up && !r.data.session) {
+            msg.textContent = "שלחנו לך מייל אישור — לחץ על הקישור כדי להשלים את ההרשמה";
+          }
+        };
+      };
+      paint();
+    }
+    document.body.appendChild(menu);
+  }
+  avatar?.addEventListener("click", (e) => { e.stopPropagation(); openAccount(); });
+  avatar?.addEventListener("keydown", (e) => { if (e.key === "Enter") openAccount(); });
+  document.addEventListener("click", (e) => { if (menu && !menu.contains(e.target)) closeAccount(); });
 
   /* ================= הודעה קטנה ================= */
   let toastEl, toastT;
@@ -501,19 +593,22 @@
   const plDesc = (n) => `פלייליסט · ${songsWord(n)}`;
   const slimTrack = (tr) => ({ uid: tr.uid, src: tr.src, i: tr.i, t: tr.t, a: tr.a, al: tr.al || "", d: tr.d, art: tr.art, vid: tr.vid, link: tr.link, full: tr.full });
 
-  function savePlaylist(pl, isNew) {
+  async function savePlaylist(pl, isNew) {
     pl.s = plDesc(pl.tracks.length);
     pl.art = pl.cover || pl.tracks[0]?.art || "";
     if (isNew) lib = [pl, ...lib];
     refresh();
-    writeLocal();
+    if (user && sb) {
+      const { error } = await sb.from("library_items").upsert({ item_key: pl.k, kind: "playlist", data: pl }, { onConflict: "user_id,item_key" });
+      if (error) { toast("השמירה נכשלה"); return loadLib(); }
+    } else writeLocal();
     if ((location.hash || "").startsWith("#/pl/" + pl.id)) renderPlaylist(pl.id);
   }
 
   async function newPlaylist(name, first) {
     const id = Math.random().toString(36).slice(2, 9);
     const pl = { k: "pl:" + id, kind: "playlist", id, n: name, h: "#/pl/" + id, tracks: first ? [slimTrack(first)] : [] };
-    savePlaylist(pl, true);
+    await savePlaylist(pl, true);
     toast(first ? `נוסף ל"${name}"` : `נוצר "${name}"`);
     return pl;
   }
@@ -522,14 +617,15 @@
     if (pl.tracks.some((t) => t.uid === tr.uid)) return toast(`כבר נמצא ב"${pl.n}"`);
     if (pl.tracks.length >= 500) return toast("הפלייליסט מלא (500 שירים)");
     pl.tracks.push(slimTrack(tr));
-    savePlaylist(pl);
+    await savePlaylist(pl);
     toast(`נוסף ל"${pl.n}"`);
   }
 
-  function deletePlaylist(pl) {
+  async function deletePlaylist(pl) {
     lib = lib.filter((x) => x.k !== pl.k);
     refresh();
-    writeLocal();
+    if (user && sb) await sb.from("library_items").delete().eq("item_key", pl.k);
+    else writeLocal();
     toast("הפלייליסט נמחק");
     if ((location.hash || "").startsWith("#/pl/")) location.hash = "#/library";
   }
@@ -548,6 +644,17 @@
     inp.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
   }
 
+  function needAccount(what) {
+    if (user) return false;
+    toast(`צריך להתחבר כדי ${what}`);
+    setTimeout(() => { if (!menu) openAccount(); }, 150);
+    return true;
+  }
+  const _like = window.like;
+  window.like = function (tr, btn) {
+    if (needAccount("לסמן שירים שאהבת")) return;
+    _like(tr, btn);
+  };
   function pickCover(pl) {
     const inp = document.createElement("input");
     inp.type = "file"; inp.accept = "image/*";
@@ -570,7 +677,7 @@
     };
     inp.click();
   }
-  window.wavoNewPlaylist = () => { askName(`הפלייליסט שלי #${playlists().length + 1}`, (n) => newPlaylist(n).then((pl) => (location.hash = pl.h))); };
+  window.wavoNewPlaylist = () => { if (needAccount("ליצור פלייליסט")) return; askName(`הפלייליסט שלי #${playlists().length + 1}`, (n) => newPlaylist(n).then((pl) => (location.hash = pl.h))); };
 
   const libHead = document.querySelector(".lib-head");
   if (libHead && !libHead.querySelector(".lib-new")) {
@@ -631,6 +738,7 @@
       if (a === "play") playTrack(tr, true);
       else if (a === "like") like(tr);
       else if (a === "artist") location.hash = "#/artist/" + encodeURIComponent(tr.a);
+      else if ((a === "new" || a === "pl") && needAccount("להוסיף לפלייליסט")) return;
       else if (a === "new") askName(`הפלייליסט שלי #${pls.length + 1}`, (n) => newPlaylist(n, tr));
       else if (a === "pl") addToPlaylist(pls[+b.dataset.n], tr);
       else if (a === "rm") { fromPl.tracks = fromPl.tracks.filter((t) => t.uid !== tr.uid); savePlaylist(fromPl); toast("הוסר מהפלייליסט"); }
@@ -669,7 +777,7 @@
   function renderPlaylist(id) {
     const pl = playlists().find((p) => p.id === id);
     if (!pl) {
-      viewEl.innerHTML = `<h1 class="greet">פלייליסט</h1><p class="no-results on">הפלייליסט לא נמצא</p>`;
+      viewEl.innerHTML = `<h1 class="greet">פלייליסט</h1><p class="no-results on">${user || lib.length ? "הפלייליסט לא נמצא" : "טוען…"}</p>`;
       return;
     }
     const mins = Math.round(pl.tracks.reduce((n, t) => n + (t.d || 0), 0) / 60);
@@ -711,8 +819,22 @@
   const _play = window.playTrack;
   window.playTrack = function (tr, start) { const r = _play(tr, start); if (tr) setTimeout(() => fetchLyrics(tr).catch(() => {}), 400); return r; };
 
-  /* ================= טעינת הספרייה ================= */
+  /* ================= חיבור לחשבון ================= */
+  paintAvatar();
   loadLib();
+  if (sb) {
+    sb.auth.onAuthStateChange((_e, session) => {
+      const next = session?.user || null;
+      if ((next?.id || null) === (user?.id || null)) return;
+      user = next;
+      paintAvatar();
+      closeAccount();
+      setTimeout(loadLib, 0);
+    });
+    sb.auth.getSession().then(({ data }) => {
+      if (data.session?.user && !user) { user = data.session.user; paintAvatar(); loadLib(); }
+    });
+  }
 })();
 
 /* ---- smooth mouse-wheel scrolling (eases instead of jumping) ---- */

@@ -70,6 +70,13 @@ body::before {
 .track .fill { background: var(--grad) !important; }
 .mini-cover { border-radius: 12px !important; }
 
+/* account popup */
+.acct { border-radius: 22px !important; background: rgba(12,16,32,.92) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  animation: wavo-pop .28s var(--ease); }
+.acct-form input { border-radius: 12px !important; }
+.acct-go { background: var(--grad) !important; color: var(--ink) !important; border-radius: 999px !important; font-weight: 800; }
+@keyframes wavo-pop { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+
 .view > * { animation: wavo-in .45s var(--ease) both; }
 @keyframes wavo-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
@@ -83,6 +90,7 @@ body.is-phone { --player-h: 70px; --tab-h: 62px; }
 body.is-phone .app { height: calc(100dvh - var(--player-h) - var(--tab-h) - env(safe-area-inset-bottom)) !important; padding: 8px 8px 0 !important; }
 body.is-phone .content { border-radius: 20px !important; }
 body.is-phone .menu-btn, body.is-phone .arrows { display: none !important; }
+body.is-phone .avatar { display: grid !important; width: 38px; height: 38px; }
 body.is-phone .topbar { gap: .6rem; padding-top: .3rem; }
 body.is-phone .search input { font-size: 16px; }
 body.is-phone .player {
@@ -113,6 +121,19 @@ body.is-phone .tabbar {
 /* bigger touch targets */
 body.is-phone .ctl { min-width: 42px; min-height: 42px; display: grid; place-items: center; }
 body.is-phone .row { min-height: 58px; }
+
+/* account popup becomes a bottom sheet */
+body.is-phone .acct {
+  top: auto !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: auto !important; border-radius: 26px 26px 0 0 !important;
+  padding: 1.4rem 1.2rem calc(1.4rem + env(safe-area-inset-bottom)) !important;
+  z-index: 500; animation: wavo-sheet .35s var(--ease);
+  box-shadow: 0 -20px 60px rgba(0,0,0,.6) !important;
+}
+body.is-phone .acct::before { content: ""; display: block; width: 42px; height: 5px; border-radius: 999px; background: rgba(255,255,255,.2); margin: -.4rem auto 1rem; }
+body.is-phone .acct .gbtn { padding: 13px 12px; }
+body.is-phone .acct-form input { padding: .85rem .9rem !important; font-size: 16px; }
+@keyframes wavo-sheet { from { transform: translateY(100%); } to { transform: none; } }
 
 body.is-phone .lyrics { inset: 0 0 calc(var(--player-h) + var(--tab-h)) 0; }
 body.is-phone .wtoast { bottom: calc(var(--player-h) + var(--tab-h) + 20px); }
@@ -175,7 +196,7 @@ body.is-phone .lyr-body { padding: 18vh 0 30vh; }
 
 /* ---- phone stability: drop heavy GPU effects that make phones lag or crash ---- */
 body.is-phone *, body.is-phone *::before, body.is-phone *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-body.is-phone .player, body.is-phone .tabbar { background: rgba(8,11,24,.98) !important; }
+body.is-phone .player, body.is-phone .tabbar, body.is-phone .acct { background: rgba(8,11,24,.98) !important; }
 body.is-phone .is-synced .lyr-line { filter: none !important; }
 body.is-phone [class*="lyr-bg"], body.is-phone .lyrics::before { animation: none !important; filter: blur(24px) brightness(.4) !important; }
 body.is-phone::before { display: none; }
