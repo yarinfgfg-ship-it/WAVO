@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -8,8 +7,8 @@ declare global {
   }
 }
 
-const HTML_VERSION = 42;
-const SCRIPT_VERSION = 41;
+const HTML_VERSION = 43;
+const SCRIPT_VERSION = 42;
 const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js"];
 
 export const Route = createFileRoute("/")({
@@ -27,14 +26,14 @@ export const Route = createFileRoute("/")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/style.css?v=15" },
-      { rel: "stylesheet", href: "/wavo/extras.css?v=9" },
-      { rel: "stylesheet", href: "/wavo/polish.css?v=7" },
+      { rel: "stylesheet", href: "/wavo/style.css?v=16" },
+      { rel: "stylesheet", href: "/wavo/extras.css?v=10" },
+      { rel: "stylesheet", href: "/wavo/polish.css?v=8" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/fresh.css?v=13" },
+      { rel: "stylesheet", href: "/wavo/fresh.css?v=14" },
     ],
   }),
   component: Wavo,
@@ -42,7 +41,7 @@ export const Route = createFileRoute("/")({
 
 // The player is plain JS sharing globals across its scripts, so it is injected
 // once and the scripts are appended in order rather than bundled as modules.
-// The account panel (email sign-in) talks to Supabase through window.WAVO.
+// There is no account system: the library is kept on the device.
 function Wavo() {
   useEffect(() => {
     let cancelled = false;
@@ -51,11 +50,6 @@ function Wavo() {
       return;
     }
     window.__wavoBooted = true;
-
-    window.WAVO = {
-      supabase,
-      signOut: () => supabase.auth.signOut(),
-    };
 
     (async () => {
       const html = await (await fetch(`/wavo/app.html?v=${HTML_VERSION}`)).text();

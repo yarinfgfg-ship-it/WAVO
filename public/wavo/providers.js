@@ -252,7 +252,7 @@ async function searchAll(q, onStatus) {
   const merged = [];
   const runOne = async (p) => {
     if (p.id === "yt" && !YT_KEY_READY) {
-      onStatus(p.id, "off", "מקור הווידאו החי כבוי — חסר מפתח ב־.env", []);
+      onStatus(p.id, "off", "מקור הווידאו החי דורש חיבור לשרת — באפליקציית הווב הקטלוג והחיפוש הפנימי עובדים", []);
       return;
     }
     onStatus(p.id, "loading", "", []);
@@ -278,8 +278,11 @@ async function searchAll(q, onStatus) {
 let YT_KEY_READY = false;
 async function checkProviders() {
   try {
-    const d = await req("/api/health", 4000);
-    YT_KEY_READY = !!d.youtube;
+    await req("/api/health", 4000);
+    /* The server scrapes YouTube's public pages when no API key is set,
+       so a reachable server is enough — a missing key is not a reason
+       to turn the provider off. Only a static bundle (no server) stays off. */
+    YT_KEY_READY = true;
   } catch {
     YT_KEY_READY = false;
   }

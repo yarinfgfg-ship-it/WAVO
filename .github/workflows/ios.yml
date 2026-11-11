@@ -24,9 +24,6 @@ jobs:
 
       - name: Assemble the web bundle (www/)
         run: node scripts/ios-web.mjs
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Generate icon + splash
         run: node scripts/ios-assets.mjs

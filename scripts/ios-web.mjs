@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const src = path.join(root, "public");
 const out = path.join(root, "www");
 
-const VERSION = 2;
+const VERSION = 3;
 const q = (f) => `${f}?v=${VERSION}`;
 
 function replace(text, from, to, label) {
@@ -65,25 +65,6 @@ html = replace(
 );
 
 html = replace(html, 'src="/favicon.png"', 'src="favicon.png"', "rail logo path");
-/* ---------- account bootstrap (Supabase) ----------
-   The standalone bundle has no Nitro route to set window.WAVO, so the email
-   sign-in needs the Supabase client here. Values come from the environment
-   (GitHub Secrets in CI) so no credentials are committed to the repo. */
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-if (SUPABASE_URL && SUPABASE_KEY) {
-  const boot =
-    '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n' +
-    "  <script>\n" +
-    "    window.WAVO = window.WAVO || {};\n" +
-    `    window.WAVO.supabase = supabase.createClient(${JSON.stringify(SUPABASE_URL)}, ${JSON.stringify(SUPABASE_KEY)});\n` +
-    "    window.WAVO.signOut = function () { return window.WAVO.supabase.auth.signOut(); };\n" +
-    "  </script>\n  ";
-  if (!html.includes('src="wavo/ios.js')) throw new Error("ios build: script anchor not found for supabase bootstrap");
-  html = html.replace('<script src="wavo/ios.js', boot + '<script src="wavo/ios.js');
-} else {
-  console.log("ios build: no Supabase env - account panel will be offline");
-}
 
 fs.writeFileSync(path.join(out, "index.html"), html);
 
@@ -110,8 +91,8 @@ providers = replace(
 );
 providers = replace(
   providers,
-  '"מקור הווידאו החי כבוי — חסר מפתח ב־.env"',
-  '"החיפוש החי לא זמין באפליקציה — מחפשים במאגר השירים המובנה"',
+  /onStatus\(p\.id, "off", "[^"]*", \[\]\)/,
+  'onStatus(p.id, "off", "החיפוש החי לא זמין באפליקציה — מחפשים במאגר השירים המובנה", [])',
   "provider off message",
 );
 fs.writeFileSync(path.join(out, "wavo", "providers.js"), providers);

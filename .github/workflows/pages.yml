@@ -35,9 +35,6 @@ jobs:
 
       - name: Assemble the web bundle
         run: node scripts/ios-web.mjs
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
       # PWA app manifest so "Add to Home Screen" gives a real icon + full screen.
       # Paths are rewritten to relative ones because Pages serves under /WAVO/.

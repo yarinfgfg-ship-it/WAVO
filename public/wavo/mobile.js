@@ -14,7 +14,6 @@
     home: '<path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10.5V20h12v-9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
     search: '<circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
     library: '<path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-    me: '<circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 19.5c1.4-3.2 4-4.6 7-4.6s5.6 1.4 7 4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   };
   const nav = document.createElement("nav");
   nav.className = "tabbar";
@@ -22,16 +21,11 @@
   nav.innerHTML = `
     <a href="#/home" data-tab="home"><svg viewBox="0 0 24 24">${icon.home}</svg><span>בית</span></a>
     <a href="#/search" data-tab="search"><svg viewBox="0 0 24 24">${icon.search}</svg><span>חיפוש</span></a>
-    <a href="#/library" data-tab="library"><svg viewBox="0 0 24 24">${icon.library}</svg><span>הספרייה</span></a>
-    <button type="button" data-tab="me"><svg viewBox="0 0 24 24">${icon.me}</svg><span>חשבון</span></button>`;
+    <a href="#/library" data-tab="library"><svg viewBox="0 0 24 24">${icon.library}</svg><span>הספרייה</span></a>`;
   document.body.appendChild(nav);
 
   nav.querySelector('[data-tab="search"]').addEventListener("click", () =>
     setTimeout(() => document.getElementById("search")?.focus(), 60));
-  nav.querySelector('[data-tab="me"]').addEventListener("click", (e) => {
-    e.stopPropagation();
-    document.querySelector(".avatar")?.click();
-  });
 
   const mark = () => {
     const h = (location.hash || "#/home").split("/")[1] || "home";
