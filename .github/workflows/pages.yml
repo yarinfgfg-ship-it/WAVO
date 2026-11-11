@@ -1,0 +1,82 @@
+# Deploys the iOS web bundle (www/) to GitHub Pages on every push to main.
+# On the iPhone: open the Pages URL in Safari, Share -> Add to Home Screen.
+name: Deploy web app (PWA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Assemble the web bundle
+        run: node scripts/ios-web.mjs
+
+      # PWA app manifest so "Add to Home Screen" gives a real icon + full screen.
+      # Paths are rewritten to relative ones because Pages serves under /WAVO/.
+      - name: Add PWA manifest
+        run: |
+          node -e "
+          const fs = require('fs');
+          const m = {
+            id: './',
+            name: 'WAVO',
+            short_name: 'WAVO',
+            description: 'WAVO — מוזיקה ישראלית',
+            lang: 'he',
+            dir: 'rtl',
+            start_url: './',
+            scope: './',
+            display: 'standalone',
+            orientation: 'portrait',
+            background_color: '#100c0a',
+            theme_color: '#100c0a',
+            icons: [
+              { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+              { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+              { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+            ]
+          };
+          fs.writeFileSync('www/manifest.webmanifest', JSON.stringify(m));
+          let html = fs.readFileSync('www/index.html', 'utf8');
+          html = html.replace('</head>', '  <link rel=\"manifest\" href=\"manifest.webmanifest\">\n</head>');
+          fs.writeFileSync('www/index.html', html);
+          if (!html.includes('manifest.webmanifest')) throw new Error('manifest link not inserted');
+          console.log('PWA manifest ready');
+          "
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
