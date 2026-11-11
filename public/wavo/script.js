@@ -11,7 +11,6 @@ const miniCover = el("miniCover"), npTitle = el("npTitle"), npArtist = el("npArt
 const playingNow = el("playingNow"), toggle = el("toggle");
 const fill = el("fill"), bar = el("bar"), curTime = el("curTime"), totTime = el("totTime");
 const volBar = el("volBar"), volFill = el("volFill");
-const winClose = el("winClose"), winFull = el("winFull"), winHide = el("winHide");
 
 const CHUNK = 60;
 const byId = {};
@@ -41,6 +40,7 @@ let track = null, current = -1, playing = false, elapsed = 0, volume = 70;
 let shuffle = false, repeat = false, yt = null, engine = null;
 let want = null, wantAuto = false, apiTried = false, retried = false, nudge = 0, nudgeTimer = 0;
 const isTouch = (typeof window !== "undefined" && (('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0));
+let playedOnce = false;
 let playQueue = [], qPos = -1;
 let triedUids = new Set(), triedKey = "", autoSwitch = false;
 let queue = songs.map((_, i) => i), drawn = 0, rowMap = new Map(), listBox = null;
@@ -50,17 +50,17 @@ const audioEl = new Audio();
 audioEl.preload = "auto";
 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-const songsWord = (n) => (n === 1 ? "Ã—Â©Ã—â„¢Ã—Â¨ Ã—ÂÃ—â€”Ã—â€œ" : `${n} Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â`);
+const songsWord = (n) => (n === 1 ? "שיר אחד" : `${n} שירים`);
 const duration = () => (engine === "audio" ? audioEl.duration || track?.d || 0 : (yt && yt.getDuration ? yt.getDuration() : track?.d) || 0);
 const nowOf = () => (engine === "audio" ? audioEl.currentTime : (yt && yt.getCurrentTime ? yt.getCurrentTime() : elapsed));
 const greeting = () => {
   const h = new Date().getHours();
-  return h < 5 ? "Ã—Å“Ã—â„¢Ã—Å“Ã—â€ Ã—ËœÃ—â€¢Ã—â€˜" : h < 12 ? "Ã—â€˜Ã—â€¢Ã—Â§Ã—Â¨ Ã—ËœÃ—â€¢Ã—â€˜" : h < 17 ? "Ã—Â¦Ã—â€Ã—Â¨Ã—â„¢Ã—â„¢Ã—Â Ã—ËœÃ—â€¢Ã—â€˜Ã—â„¢Ã—Â" : h < 21 ? "Ã—Â¢Ã—Â¨Ã—â€˜ Ã—ËœÃ—â€¢Ã—â€˜" : "Ã—Å“Ã—â„¢Ã—Å“Ã—â€ Ã—ËœÃ—â€¢Ã—â€˜";
+  return h < 5 ? "לילה טוב" : h < 12 ? "בוקר טוב" : h < 17 ? "צהריים טובים" : h < 21 ? "ערב טוב" : "לילה טוב";
 };
 
 miniCover.src = thumb(songs[0].yt);
 
-/* ---------- Ã—Â©Ã—â€¢Ã—Â¨Ã—â€¢Ã—Âª ---------- */
+/* ---------- שורות ---------- */
 function rowShell(tr, pos) {
   const row = document.createElement("div");
   row.className = "row";
@@ -72,11 +72,11 @@ function rowShell(tr, pos) {
     <div><p class="song-title"></p><p class="song-sub"></p></div>
     <span class="row-album"></span>
     <span class="row-time"></span>
-    <button class="icon-btn sm heart" aria-label="Ã—ÂÃ—â€Ã—â€˜"></button>`;
+    <button class="icon-btn sm heart" aria-label="אהב"></button>`;
   row.querySelector(".song-title").textContent = tr.t;
-  row.querySelector(".song-sub").textContent = tr.al ? `${tr.a} Ã‚Â· ${tr.al}` : tr.a;
+  row.querySelector(".song-sub").textContent = tr.al ? `${tr.a} · ${tr.al}` : tr.a;
   row.querySelector(".row-album").textContent = tr.a;
-  row.querySelector(".row-time").textContent = tr.d ? mmss(tr.d) : "Ã¢â‚¬â€";
+  row.querySelector(".row-time").textContent = tr.d ? mmss(tr.d) : "—";
   const heart = row.querySelector(".heart");
   heart.innerHTML = HEART;
   heart.dataset.id = tr.uid;
@@ -100,7 +100,7 @@ function drawMore() {
   const more = el("more");
   if (more) {
     more.hidden = drawn >= queue.length;
-    more.textContent = `Ã—ËœÃ—Â¢Ã—Å¸ Ã—Â¢Ã—â€¢Ã—â€œ (${queue.length - drawn})`;
+    more.textContent = `טען עוד (${queue.length - drawn})`;
   }
 }
 
@@ -114,7 +114,7 @@ function mountList(indices, withMore = true) {
   if (!indices.length) {
     const empty = document.createElement("p");
     empty.className = "no-results on";
-    empty.textContent = "Ã—ÂÃ—â„¢Ã—Å¸ Ã—Å¾Ã—â€ Ã—Å“Ã—â€Ã—Â¦Ã—â„¢Ã—â€™ Ã—â€ºÃ—ÂÃ—Å¸";
+    empty.textContent = "אין מה להציג כאן";
     viewEl.appendChild(empty);
   }
   if (withMore) {
@@ -135,14 +135,14 @@ scroller.addEventListener("scroll", () => {
   if (scroller.scrollTop + scroller.clientHeight > scroller.scrollHeight - 600) drawMore();
 });
 
-/* ---------- Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—ËœÃ—â„¢Ã—Â Ã—â€˜Ã—Â¦Ã—â€œ ---------- */
+/* ---------- פלייליסטים בצד ---------- */
 function playlistItems() {
   const items = [
-    { n: "Ã—â€ºÃ—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â", s: `Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—Ëœ Ã‚Â· ${songsWord(songs.length)}`, h: "#/library", art: thumb(songs[0].yt) },
-    { n: "Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—ÂÃ—â€Ã—â€˜Ã—ÂªÃ—â„¢", s: `Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—Ëœ Ã‚Â· ${songsWord(likes.size)}`, h: "#/liked", heart: true },
+    { n: "כל השירים", s: `פלייליסט · ${songsWord(songs.length)}`, h: "#/library", art: thumb(songs[0].yt) },
+    { n: "שירים שאהבתי", s: `פלייליסט · ${songsWord(likes.size)}`, h: "#/liked", heart: true },
   ];
   topArtists.forEach((a) =>
-    items.push({ n: a, s: `Ã—ÂÃ—Å¾Ã—Å¸ Ã‚Â· ${songsWord(artistCount(a))}`, h: `#/artist/${encodeURIComponent(a)}`, art: thumb(songs.find((x) => x.a === a).yt) })
+    items.push({ n: a, s: `אמן · ${songsWord(artistCount(a))}`, h: `#/artist/${encodeURIComponent(a)}`, art: thumb(songs.find((x) => x.a === a).yt) })
   );
   return items;
 }
@@ -172,7 +172,7 @@ el("libFilter").addEventListener("input", (e) => {
   renderPlaylists();
 });
 
-/* ---------- Ã—â€ºÃ—Â¨Ã—ËœÃ—â„¢Ã—Â¡Ã—â„¢Ã—Â ---------- */
+/* ---------- כרטיסים ---------- */
 function section(title, sub) {
   const wrap = document.createElement("section");
   wrap.className = "sec";
@@ -213,7 +213,7 @@ function artistCard(a) {
   return c;
 }
 
-/* ---------- Ã—ÂªÃ—Â¦Ã—â€¢Ã—â€™Ã—â€¢Ã—Âª ---------- */
+/* ---------- תצוגות ---------- */
 function recommended(n) {
   const seed = {};
   history.forEach((t) => { if (t && t.a) seed[t.a] = (seed[t.a] || 0) + 2; });
@@ -232,38 +232,38 @@ function renderHome() {
   viewEl.innerHTML = `<h1 class="greet">${greeting()}</h1>`;
 
   if (history.length) {
-    const cont = section("Ã—â€Ã—Å¾Ã—Â©Ã—Å¡ Ã—â€Ã—ÂÃ—â€“Ã—Â Ã—â€");
+    const cont = section("המשך האזנה");
     const row = document.createElement("div");
     row.className = "wrow";
     history.slice(0, 6).forEach((t) => row.appendChild(wideCard(t)));
     cont.appendChild(row);
   }
 
-  const rec = section("Ã—Å¾Ã—â€¢Ã—Å¾Ã—Å“Ã—Â¥ Ã—â€˜Ã—Â©Ã—â€˜Ã—â„¢Ã—Å“Ã—Å¡", history.length ? "Ã—Å“Ã—Â¤Ã—â„¢ Ã—Å¾Ã—â€ Ã—Â©Ã—Â©Ã—Å¾Ã—Â¢Ã—Âª" : "Ã—Å“Ã—â€”Ã—Â¥ Ã—Â¢Ã—Å“ Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€ºÃ—â€œÃ—â„¢ Ã—Å“Ã—â€Ã—ÂªÃ—â€”Ã—â„¢Ã—Å“");
+  const rec = section("מומלץ בשבילך", history.length ? "לפי מה ששמעת" : "לחץ על שיר כדי להתחיל");
   const grid = document.createElement("div");
   grid.className = "grid";
   recommended(8).forEach((t) => grid.appendChild(tile(t)));
   rec.appendChild(grid);
 
-  const pop = section("Ã—ÂÃ—Å¾Ã—Â Ã—â„¢Ã—Â");
+  const pop = section("אמנים");
   const pg = document.createElement("div");
   pg.className = "browse";
   topArtists.slice(0, 8).forEach((a) => pg.appendChild(artistCard(a)));
   pop.appendChild(pg);
 
-  const all = section("Ã—â€ºÃ—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â");
+  const all = section("כל השירים");
   const link = document.createElement("a");
   link.className = "link-all";
   link.href = "#/library";
-  link.textContent = `Ã—Å“Ã—â€ºÃ—Å“ ${songs.length} Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—â€˜Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€ Ã¢â€ Â`;
+  link.textContent = `לכל ${songs.length} השירים בספרייה ←`;
   all.appendChild(link);
 }
 
 function renderSearch() {
   const q = el("search").value.trim();
-  viewEl.innerHTML = `<h1 class="greet">Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â©</h1>`;
+  viewEl.innerHTML = `<h1 class="greet">חיפוש</h1>`;
   if (!q) {
-    const browse = section("Ã—Â¢Ã—â„¢Ã—â„¢Ã—Å¸ Ã—Å“Ã—Â¤Ã—â„¢ Ã—ÂÃ—Å¾Ã—Å¸");
+    const browse = section("עיין לפי אמן");
     const grid = document.createElement("div");
     grid.className = "browse";
     topArtists.forEach((a) => grid.appendChild(artistCard(a)));
@@ -277,7 +277,7 @@ function renderSearch() {
   viewEl.appendChild(box);
   const line = document.createElement("p");
   line.className = "srcline on";
-  line.textContent = "Ã—Å¾Ã—â€”Ã—Â¤Ã—Â© Ã—â€˜Ã—â€ºÃ—Å“ Ã—â€Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨Ã—â€¢Ã—ÂªÃ¢â‚¬Â¦";
+  line.textContent = "מחפש בכל המקורות…";
   viewEl.appendChild(line);
 
   let count = 0;
@@ -293,14 +293,14 @@ function renderSearch() {
       okSrc.add(id);
       items.forEach((tr, n) => { box.appendChild(rowShell(tr, from + n)); playQueue.push(tr); });
     }
-    if (count) line.textContent = `${songsWord(count)} Ã—Å¾Ã–Â¾${okSrc.size} Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨Ã—â€¢Ã—Âª`;
+    if (count) line.textContent = `${songsWord(count)} מ־${okSrc.size} מקורות`;
   }).then(() => {
     if (token !== searchToken) return;
     if (!count) {
       box.remove();
       const p = document.createElement("p");
       p.className = "no-results on";
-      p.textContent = "Ã—ÂÃ—Â£ Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨ Ã—Å“Ã—Â Ã—Å¾Ã—Â¦Ã—Â Ã—Â©Ã—â„¢Ã—Â¨ Ã—Â©Ã—ÂÃ—Â¤Ã—Â©Ã—Â¨ Ã—Å“Ã—Â Ã—â€™Ã—Å¸. Ã—Â Ã—Â¡Ã—â€ Ã—Â©Ã—Â Ã—Â©Ã—Å“ Ã—ÂÃ—Å¾Ã—Å¸ Ã—ÂÃ—â€¢ Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—Âª Ã—â€˜Ã—ÂÃ—Â Ã—â€™Ã—Å“Ã—â„¢Ã—Âª, Ã—ÂÃ—â€¢ Ã—â€˜Ã—Å“Ã—â„¢ Ã—Å¾Ã—â„¢Ã—Å“Ã—â„¢Ã—Â Ã—â€ºÃ—Å¾Ã—â€¢ 'Ã—Â§Ã—Å“Ã—â„¢Ã—Â¤'.";
+      p.textContent = "אף מקור לא מצא שיר שאפשר לנגן. נסה שם של אמן או כותרת באנגלית, או בלי מילים כמו 'קליפ'.";
       viewEl.appendChild(p);
       line.textContent = "";
     }
@@ -311,18 +311,18 @@ function renderSearch() {
 function headRow() {
   const head = document.createElement("div");
   head.className = "row row-head";
-  head.innerHTML = "<span>#</span><span></span><span>Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—Âª</span><span>Ã—ÂÃ—Å¾Ã—Å¸</span><span>Ã—â€“Ã—Å¾Ã—Å¸</span><span></span>";
+  head.innerHTML = "<span>#</span><span></span><span>כותרת</span><span>אמן</span><span>זמן</span><span></span>";
   return head;
 }
 
 function renderLibrary() {
-  viewEl.innerHTML = `<h1 class="greet">Ã—â€Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€ Ã—Â©Ã—Å“Ã—Å¡</h1>`;
+  viewEl.innerHTML = `<h1 class="greet">הספרייה שלך</h1>`;
   viewEl.appendChild(headRow());
   mountList(songs.map((_, i) => i));
 }
 
 function renderLiked() {
-  viewEl.innerHTML = `<h1 class="greet">Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—ÂÃ—â€Ã—â€˜Ã—ÂªÃ—â„¢</h1>`;
+  viewEl.innerHTML = `<h1 class="greet">שירים שאהבתי</h1>`;
   const list = likedTracks();
   if (list.length) {
     viewEl.appendChild(headRow());
@@ -338,7 +338,7 @@ function renderLiked() {
   }
   const p = document.createElement("p");
   p.className = "no-results on";
-  p.textContent = "Ã—Â¢Ã—â€œÃ—â„¢Ã—â„¢Ã—Å¸ Ã—Å“Ã—Â Ã—ÂÃ—â€Ã—â€˜Ã—Âª Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã¢â‚¬â€ Ã—Å“Ã—â€”Ã—Â¥ Ã—Â¢Ã—Å“ Ã—â€Ã—Å“Ã—â€˜ Ã—â€˜Ã—â€ºÃ—Å“ Ã—Â©Ã—â„¢Ã—Â¨";
+  p.textContent = "עדיין לא אהבת שירים — לחץ על הלב בכל שיר";
   viewEl.appendChild(p);
 }
 
@@ -348,7 +348,7 @@ function renderArtist(name) {
     viewEl.innerHTML = `<h1 class="greet">${h(name)}</h1>`;
     const p = document.createElement("p");
     p.className = "no-results on";
-    p.textContent = "Ã—Å“Ã—Â Ã—Å¾Ã—Â¦Ã—ÂÃ—Â Ã—â€¢ Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—Å“ Ã—â€Ã—ÂÃ—Å¾Ã—Å¸ Ã—â€Ã—â€“Ã—â€ Ã—â€˜Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€";
+    p.textContent = "לא מצאנו שירים של האמן הזה בספרייה";
     viewEl.appendChild(p);
     return;
   }
@@ -356,8 +356,8 @@ function renderArtist(name) {
   viewEl.innerHTML = `
     <section class="ahero">
       <img alt="" src="${thumb(s.yt)}">
-      <div><p class="kind">Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—Ëœ Ã‚Â· Ã—ÂÃ—Å¾Ã—Å¸</p><h1></h1>
-      <p class="desc">${songsWord(idx.length)} Ã—â€“Ã—Å¾Ã—â„¢Ã—Â Ã—â„¢Ã—Â Ã‚Â· ${Math.round(idx.reduce((n, i) => n + songs[i].d, 0) / 60)} Ã—â€œÃ—Â§Ã—â€¢Ã—Âª Ã‚Â· Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢</p>
+      <div><p class="kind">פלייליסט · אמן</p><h1></h1>
+      <p class="desc">${songsWord(idx.length)} זמינים · ${Math.round(idx.reduce((n, i) => n + songs[i].d, 0) / 60)} דקות · וידאו רשמי</p>
       <button class="play-big" id="playArtist">${PLAY}</button></div>
     </section>`;
   viewEl.querySelector("h1").textContent = name;
@@ -366,7 +366,7 @@ function renderArtist(name) {
   mountList(idx);
 }
 
-/* ---------- Ã—Å“Ã—â€¢Ã—â€” Ã—Â Ã—â„¢Ã—â€™Ã—â€¢Ã—Å¸ ---------- */
+/* ---------- לוח ניגון ---------- */
 function relatedTracks(tr) {
   if (tr.src === "catalog") {
     return songs.map((_, i) => i).filter((i) => songs[i].a === tr.a && i !== tr.i).slice(0, 6).map(localTrack);
@@ -376,25 +376,25 @@ function relatedTracks(tr) {
 
 function renderNp(tr) {
   if (!tr) return;
-  el("npBased").textContent = `Ã—Å¾Ã—â€˜Ã—â€¢Ã—Â¡Ã—Â¡ Ã—Â¢Ã—Å“ ${tr.t}`;
+  el("npBased").textContent = `מבוסס על ${tr.t}`;
   const box = el("npBody");
-  const kind = tr.src === "catalog" || tr.src === "yt" ? "Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢" : "Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—Å¾Ã—Å“Ã—ÂÃ—â€";
+  const kind = tr.src === "catalog" || tr.src === "yt" ? "וידאו רשמי" : "הזרמה מלאה";
   box.innerHTML = `
-    <div class="np-art"><img alt="" src="${h(tr.art)}"><button class="np-fab" id="npFab" aria-label="Ã—â€Ã—Â¤Ã—Â¢Ã—Å“ / Ã—â€Ã—Â©Ã—â€Ã—â€">${toggle.innerHTML}</button></div>
+    <div class="np-art"><img alt="" src="${h(tr.art)}"><button class="np-fab" id="npFab" aria-label="הפעל / השהה">${toggle.innerHTML}</button></div>
     <p class="np-kind">${kind}</p>
     <h3 class="np-t"></h3>
-    <p class="np-a"><span class="np-by"></span>${tr.src === "catalog" ? `<span class="badge" title="Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Å¾Ã—â€Ã—Â¢Ã—Â¨Ã—â€¢Ã—Â¥ Ã—â€Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢ Ã—Â©Ã—Å“ Ã—â€Ã—ÂÃ—Å¾Ã—Å¸">${CHECK}</span>` : ""}</p>
+    <p class="np-a"><span class="np-by"></span>${tr.src === "catalog" ? `<span class="badge" title="וידאו מהערוץ הרשמי של האמן">${CHECK}</span>` : ""}</p>
     <p class="np-meta"></p>
     <div class="np-acts">
-      <button class="icon-btn sm heart" id="npHeart" aria-label="Ã—ÂÃ—â€Ã—â€˜"></button>
+      <button class="icon-btn sm heart" id="npHeart" aria-label="אהב"></button>
       
     </div>
     <div id="npMore"></div>`;
   box.querySelector(".np-t").textContent = tr.t;
   box.querySelector(".np-by").textContent = tr.a;
   box.querySelector(".np-meta").textContent = tr.src === "catalog"
-    ? `${songsWord(artistCount(tr.a))} Ã—Â©Ã—Å“ ${tr.a} Ã—â€˜Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€ Ã‚Â· ${tr.d ? mmss(tr.d) : "Ã¢â‚¬â€"} Ã‚Â· Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢`
-    : `${tr.al ? tr.al + " Ã‚Â· " : ""}${tr.d ? mmss(tr.d) : "Ã¢â‚¬â€"}`;
+    ? `${songsWord(artistCount(tr.a))} של ${tr.a} בספרייה · ${tr.d ? mmss(tr.d) : "—"} · וידאו רשמי`
+    : `${tr.al ? tr.al + " · " : ""}${tr.d ? mmss(tr.d) : "—"}`;
 
   const heart = box.querySelector("#npHeart");
   heart.innerHTML = HEART;
@@ -405,13 +405,13 @@ function renderNp(tr) {
 
   const more = box.querySelector("#npMore");
   if (tr.src === "catalog") {
-    more.innerHTML = `<h4 class="np-h">Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—Å“ ${h(tr.a)}</h4><div class="np-list"></div>`;
+    more.innerHTML = `<h4 class="np-h">עוד של ${h(tr.a)}</h4><div class="np-list"></div>`;
     const list = more.querySelector(".np-list");
     relatedTracks(tr).concat(recommended(10 - Math.min(6, relatedTracks(tr).length)))
       .slice(0, 10)
       .forEach((t) => list.appendChild(npRow(t)));
   } else if (tr.src === "audius") {
-    more.innerHTML = `<h4 class="np-h">Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—Å“ ${h(tr.a)}</h4><p class="np-load">Ã—ËœÃ—â€¢Ã—Â¢Ã—Å¸Ã¢â‚¬Â¦</p>`;
+    more.innerHTML = `<h4 class="np-h">עוד של ${h(tr.a)}</h4><p class="np-load">טוען…</p>`;
     audiusSearch(tr.a, 8).then((items) => {
       if (!track || track.uid !== tr.uid) return;
       more.querySelector(".np-load").remove();
@@ -419,8 +419,8 @@ function renderNp(tr) {
       l.className = "np-list";
       more.appendChild(l);
       items.filter((t) => t.uid !== tr.uid).slice(0, 8).forEach((t) => l.appendChild(npRow(t)));
-      if (!l.children.length) more.insertAdjacentHTML("beforeend", `<p class="np-note">Ã—ÂÃ—â„¢Ã—Å¸ Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—Å“ Ã—â€Ã—ÂÃ—Å¾Ã—Å¸ Ã—â€Ã—â€“Ã—â€ Ã—â€“Ã—Å¾Ã—â„¢Ã—Â Ã—â„¢Ã—Â Ã—Å“Ã—â€Ã—Â©Ã—Å¾Ã—Â¢Ã—â€</p>`);
-    }).catch(() => { more.querySelector(".np-load").textContent = "Ã—Å“Ã—Â Ã—â€Ã—Â¦Ã—Å“Ã—â€”Ã—Â Ã—â€¢ Ã—Å“Ã—Å¾Ã—Â©Ã—â€¢Ã—Å¡ Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Å¾Ã—â€Ã—Â¡Ã—Â¤Ã—Â§"; });
+      if (!l.children.length) more.insertAdjacentHTML("beforeend", `<p class="np-note">אין עוד שירים של האמן הזה זמינים להשמעה</p>`);
+    }).catch(() => { more.querySelector(".np-load").textContent = "לא הצלחנו למשוך עוד שירים מהספק"; });
   }
 }
 
@@ -430,7 +430,7 @@ function npRow(tr) {
   r._tr = tr;
   r.innerHTML = `<img loading="lazy" alt="" src="${h(tr.art)}"><span><b></b><i></i></span><em></em>`;
   r.querySelector("b").textContent = tr.t;
-  r.querySelector("i").textContent = tr.al ? `${tr.a} Ã‚Â· ${tr.al}` : tr.a;
+  r.querySelector("i").textContent = tr.al ? `${tr.a} · ${tr.al}` : tr.a;
   r.querySelector("em").textContent = tr.d ? mmss(tr.d) : "";
   r.addEventListener("click", () => playTrack(tr, true));
   return r;
@@ -445,7 +445,7 @@ function openNp(on) {
 el("npClose").addEventListener("click", () => openNp(false));
 el("npBtn").addEventListener("click", () => openNp(!document.body.classList.contains("np-open")));
 
-/* ---------- Ã—Â Ã—â„¢Ã—â€¢Ã—â€¢Ã—Ëœ ---------- */
+/* ---------- ניווט ---------- */
 function route() {
   const h = (location.hash || "#/home").split("?")[0];
   const [, name, arg] = h.split("/");
@@ -469,22 +469,23 @@ window.addEventListener("hashchange", () => { if (matchMedia("(max-width: 900px)
 el("back").addEventListener("click", () => window.history.back());
 el("fwd").addEventListener("click", () => window.history.forward());
 
-/* ---------- Ã—Å¾Ã—Â Ã—â€¢Ã—Â¢Ã—â„¢ Ã—Â Ã—â„¢Ã—â€™Ã—â€¢Ã—Å¸ ---------- */
+/* ---------- מנועי ניגון ---------- */
 function playTrack(tr, start) {
   if (!tr) return;
-  if (!autoSwitch) { triedUids = new Set(); triedKey = ""; altPlan = null; }
+  if (!autoSwitch) { triedUids = new Set(); triedKey = ""; }
   autoSwitch = false;
   track = tr;
   current = tr.src === "catalog" ? tr.i : -1;
   elapsed = 0;
   playing = start;
+  playedOnce = false;
   document.querySelectorAll(".row.playing").forEach((r) => r.classList.toggle("playing", r.dataset.uid === tr.uid));
   const row = document.querySelector(`.row[data-uid="${CSS.escape(tr.uid)}"]`);
   if (row) row.classList.add("playing");
   miniCover.src = tr.art;
   npTitle.textContent = tr.t;
   npArtist.textContent = tr.a;
-  playingNow.textContent = `Ã—Å¾Ã—Â Ã—â€™Ã—Å¸: ${tr.t} Ã¢â‚¬â€ ${tr.a}`;
+  playingNow.textContent = `מנגן: ${tr.t} — ${tr.a}`;
   totTime.textContent = tr.d ? mmss(tr.d) : "0:00";
   fill.style.width = "0%";
   setPlaying(start);
@@ -505,21 +506,9 @@ function playYt(tr, start) {
     stage.classList.remove("note");
     stage.innerHTML = '<div class="frame"><div id="ytPlayer"></div></div>';
     yt = null;
-  }  loadYt(tr.vid, start);
-  /* Ã—â€˜Ã—â€œÃ—â„¢Ã—Â§Ã—â€ Ã—Å¾Ã—Â§Ã—â€œÃ—â„¢Ã—Å¾Ã—â€: Ã—ÂÃ—Â Ã—â€Ã—â„¢Ã—â€¢Ã—Â¦Ã—Â¨ Ã—â€”Ã—Â¡Ã—Â Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã¢â‚¬â€ Ã—Å¾Ã—â€”Ã—Å“Ã—â„¢Ã—Â¤Ã—â„¢Ã—Â Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨ Ã—Å“Ã—Â¤Ã—Â Ã—â„¢ Ã—Â©Ã—â€Ã—Â©Ã—â€™Ã—â„¢Ã—ÂÃ—â€ Ã—Â§Ã—â€¢Ã—Â¤Ã—Â¦Ã—Âª */
-  if (tr.vid && typeof ytEmbedStatus === "function") {
-    const uid = tr.uid;
-    ytEmbedStatus([tr.vid])
-      .then((status) => {
-        if (status.get(tr.vid) !== false) return;
-        if (!track || track.uid !== uid || engine !== "yt") return;
-        tryOtherSource(track, 150);
-      })
-      .catch(() => {});
   }
+  loadYt(tr.vid, start);
 }
-
-
 
 function playAudio(tr, start) {
   engine = "audio";
@@ -529,9 +518,9 @@ function playAudio(tr, start) {
     <div class="audcard">
       <img alt="" src="${h(tr.art)}">
       <div class="audmeta">
-        <p class="audkind">${tr.full ? "Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—Å¾Ã—Å“Ã—ÂÃ—â€" : "Ã—ÂªÃ—Â§Ã—â€œÃ—â„¢Ã—Å¸"}${tr.genre ? " Ã‚Â· " + tr.genre : ""}</p>
+        <p class="audkind">${tr.full ? "הזרמה מלאה" : "תקדין"}${tr.genre ? " · " + tr.genre : ""}</p>
         <h3></h3><p></p>
-        <span class="audtag ok">Ã—Â©Ã—â„¢Ã—Â¨ Ã—Å¾Ã—Å“Ã—Â Ã‚Â· Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—â„¢Ã—Â©Ã—â„¢Ã—Â¨Ã—â€</span>
+        <span class="audtag ok">שיר מלא · הזרמה ישירה</span>
       </div>
       <span class="audspin" id="audSpin"></span>
     </div>`;
@@ -555,11 +544,11 @@ function audioFail(tr, e) {
   spin(false);
   setPlaying(false);
   stage.classList.add("note");
-  stage.innerHTML = `<p class="notice">Ã—â€Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—Å“Ã—Â Ã—Â¢Ã—â€˜Ã—â€œÃ—â€ Ã¢â‚¬â€ Ã—â„¢Ã—â„¢Ã—ÂªÃ—â€ºÃ—Å¸ Ã—Â©Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€Ã—â€¢Ã—Â¡Ã—Â¨ Ã—ÂÃ—â€¢ Ã—Â©Ã—â€Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Å¸ Ã—â€”Ã—Â¡Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—â€Ã—Â©Ã—Å¾Ã—Â¢Ã—â€ Ã—â€Ã—Â¢Ã—Â¦Ã—Å¾Ã—â„¢Ã—Âª. Ã—Â Ã—Â¡Ã—â€¢ Ã—Å“Ã—Å“Ã—â€”Ã—â€¢Ã—Â¥ Ã—Â¢Ã—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—Â©Ã—â€¢Ã—â€˜.
+  stage.innerHTML = `<p class="notice">ההזרמה לא עבדה — ייתכן שהשיר הוסר או שהדפדפן חסם את ההשמעה העצמית. נסו ללחוץ על השיר שוב.
     </p>`;
 }
 
-audioEl.addEventListener("playing", () => { skipBudget = 6; spin(false); setPlaying(true); totTime.textContent = mmss(duration()); });
+audioEl.addEventListener("playing", () => { spin(false); setPlaying(true); totTime.textContent = mmss(duration()); });
 audioEl.addEventListener("pause", () => setPlaying(false));
 audioEl.addEventListener("waiting", () => spin(true));
 audioEl.addEventListener("ended", () => (repeat ? playTrack(track, true) : step(1)));
@@ -594,7 +583,7 @@ function syncLike() {
 function setPlaying(on) {
   playing = on;
   document.body.classList.toggle("is-playing", on);
-  toggle.setAttribute("aria-label", on ? "Ã—â€Ã—Â©Ã—â€Ã—â€" : "Ã—â€Ã—Â¤Ã—Â¢Ã—Å“");
+  toggle.setAttribute("aria-label", on ? "השהה" : "הפעל");
 }
 
 function loadYt(id, auto) {
@@ -631,8 +620,8 @@ function preloadYtApi() {
 }
 preloadYtApi();
 
-/* Ã—Â©Ã—ÂªÃ—â„¢ Ã—â€Ã—â€ºÃ—ÂªÃ—â€¢Ã—â€˜Ã—â€¢Ã—Âª Ã—â€Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢Ã—â€¢Ã—Âª Ã—Â©Ã—Å“ Ã—â€Ã—Â Ã—â€™Ã—Å¸. nocookie Ã—Å“Ã—Â Ã—ÂªÃ—Å“Ã—â€¢Ã—â„¢Ã—â€ Ã—â€˜Ã—Â¢Ã—â€¢Ã—â€™Ã—â„¢Ã—â€¢Ã—Âª Ã—Â¦Ã—â€œ-Ã—Â©Ã—Å“Ã—â„¢Ã—Â©Ã—â„¢, Ã—â€¢Ã—Å“Ã—â€ºÃ—Å¸ Ã—â€Ã—â„¢Ã—Â Ã—â€Ã—Â¨Ã—ÂÃ—Â©Ã—â€¢Ã—Â Ã—â€. */
-const YT_HOSTS = ["https://www.youtube.com", "https://www.youtube.com"];
+/* שתי הכתובות הרשמיות של הנגן. nocookie לא תלויה בעוגיות צד-שלישי, ולכן היא הראשונה. */
+const YT_HOSTS = ["https://www.youtube-nocookie.com", "https://www.youtube.com"];
 let hostIdx = 0, hostFlip = false;
 
 function startApi() {
@@ -661,7 +650,7 @@ function startApi() {
   });
 }
 
-/* Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Â Ã—â„¢Ã—Â Ã—Â©Ã—â€¢Ã—Â Ã—Â¢Ã—â„¢Ã—Â Ã—Å¾Ã—â€¢Ã—â€¢Ã—ÂªÃ—Â¨Ã—â„¢Ã—Â Ã—Â¢Ã—Å“ Ã—â€˜Ã—Â§Ã—Â©Ã—Âª Ã—Â Ã—â€™Ã—â„¢Ã—Â Ã—â€ Ã—Â©Ã—Å“Ã—Â Ã—â€˜Ã—ÂÃ—â€ Ã—Å¾Ã—â€Ã—Å¾Ã—Â©Ã—ÂªÃ—Å¾Ã—Â© Ã¢â‚¬â€ Ã—Å¾Ã—â€¢Ã—â€¢Ã—â€œÃ—ÂÃ—â„¢Ã—Â Ã—Â©Ã—â€Ã—ÂÃ—Å¾Ã—Âª Ã—â€Ã—ÂªÃ—â€”Ã—â„¢Ã—Å“Ã—â€ */
+/* דפדפנים שונעים מוותרים על בקשת נגינה שלא באה מהמשתמש — מוודאים שהאמת התחילה */
 function verify() {
   stopVerify();
   nudge = 0;
@@ -687,22 +676,22 @@ function freshPlayer(id) {
   startApi();
 }
 
-/* Ã—â€˜Ã—Â¨Ã—â„¢Ã—Â¨Ã—Âª Ã—Å¾Ã—â€”Ã—â€œÃ—Å“ Ã—â€ºÃ—Â©Ã—â€-API Ã—â€”Ã—Â¡Ã—â€¢Ã—Â (Ã—â€”Ã—â€¢Ã—Â¡Ã—Â Ã—Â¤Ã—Â¨Ã—Â¡Ã—â€¢Ã—Å¾Ã—â€¢Ã—Âª, Ã—Â¨Ã—Â©Ã—Âª Ã—ÂÃ—Â¨Ã—â€™Ã—â€¢Ã—Â Ã—â„¢Ã—Âª) Ã¢â‚¬â€ Ã—Â¢Ã—â€œÃ—â„¢Ã—â„¢Ã—Å¸ Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢Ã—Âª */
+/* ברירת מחדל כשה-API חסום (חוסם פרסומות, רשת ארגונית) — עדיין הטמעה רשמית */
 function plainEmbed() {
   if (!want || (window.YT && YT.Player)) return;
   stopVerify();
   stage.classList.remove("note");
-  stage.innerHTML = `<div class="frame"><iframe title="Ã—Â Ã—â€™Ã—Å¸" frameborder="0"
+  stage.innerHTML = `<div class="frame"><iframe title="נגן" frameborder="0"
     src="${YT_HOSTS[hostIdx]}/embed/${want}?autoplay=${wantAuto ? 1 : 0}&rel=0&playsinline=1"
     allow="autoplay; encrypted-media; picture-in-picture; fullscreen"></iframe></div>
-    <p class="notice">Ã—â€Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Å¸ Ã—â€”Ã—Â¡Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—â€Ã—Â©Ã—Å¾Ã—Â¢Ã—â€ Ã—â€Ã—Â¢Ã—Â¦Ã—Å¾Ã—â„¢Ã—Âª. Ã—Å“Ã—â€”Ã—â„¢Ã—Â¦Ã—â€ Ã—Â¢Ã—Å“ Ã—â€ºÃ—Â¤Ã—ÂªÃ—â€¢Ã—Â¨ Ã—â€Ã—Â Ã—â€™Ã—â„¢Ã—Â Ã—â€ Ã—â€˜Ã—Â©Ã—â€¢Ã—Â¨Ã—â€ Ã—Â©Ã—Å¾Ã—ÂªÃ—â€”Ã—Âª Ã—ÂªÃ—ÂªÃ—â€”Ã—â„¢Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€.
-      <a href="https://www.youtube.com/watch?v=${want}" target="_blank" rel="noopener">Ã—ÂÃ—â€¢ Ã—Â¦Ã—Â¤Ã—â€ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨</a></p>`;
+    <p class="notice">הדפדפן חסם את ההשמעה העצמית. לחיצה על כפתור הנגינה בשורה שמתחת תתחיל אותה.
+      <a href="https://www.youtube.com/watch?v=${want}" target="_blank" rel="noopener">או צפה במקור</a></p>`;
   stage.classList.add("note");
   yt = null;
 }
 
 function onYtState(e) {
-  if (e.data === 1) skipBudget = 6;
+  if (e.data === 1) playedOnce = true;
   if (e.data === 1 || e.data === 2 || e.data === 3) stopVerify();
   const d = safe(() => e.target.getDuration(), 0);
   if (d) {
@@ -713,30 +702,28 @@ function onYtState(e) {
     if (r) r.querySelector(".row-time").textContent = mmss(d);
   }
   setPlaying(e.data === 1);
-  if (e.data === 0 && skipBudget > 0) (repeat ? playTrack(track, true) : step(1));
+  if (e.data === 0 && playedOnce) (repeat ? playTrack(track, true) : step(1));
 }
 
 function onYtError(code) {
   stopVerify();
   const id = track ? track.vid : want;
-  /* 100/101/150/153: Ã—â€Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Å¸ Ã—Å“Ã—Â Ã—Â Ã—Å¾Ã—Â¦Ã—Â Ã—ÂÃ—â€¢ Ã—Â©Ã—â€Ã—â„¢Ã—â€¢Ã—Â¦Ã—Â¨ Ã—Â¡Ã—â€™Ã—Â¨ Ã—ÂÃ—Âª Ã—â€Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã¢â‚¬â€
-     Ã—Â Ã—â„¢Ã—Â¡Ã—â„¢Ã—â€¢Ã—Å¸ Ã—â€”Ã—â€¢Ã—â€“Ã—Â¨ Ã—â€˜Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â Ã—â€™Ã—Å¸ Ã—Å“Ã—Â Ã—â„¢Ã—Â¢Ã—â€“Ã—â€¢Ã—Â¨, Ã—Å¾Ã—â€”Ã—Â¤Ã—Â©Ã—â„¢Ã—Â Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨. */
-  const blocked = code === 100 || code === 101 || code === 150 || code === 153;
-  if (!blocked && !hostFlip && YT_HOSTS[hostIdx + 1]) {
+  /* כתובת הנגן השנייה היא התיקון כשהדפדפן חוסם עוגיות של אתר חיצוני */
+  if (!hostFlip && YT_HOSTS[hostIdx + 1]) {
     hostFlip = true;
     hostIdx++;
     return setTimeout(() => freshPlayer(id), 500);
   }
-  if (!blocked && !retried && track) {
+  if (!retried && track) {
     retried = true;
     return setTimeout(() => freshPlayer(id), 1000);
   }
-  if (!isTouch) { if (altSource()) return; if (track) return tryOtherSource(track, code); }
+  if (!isTouch && altSource()) return;
   note(id, code);
 }
 
-/* Ã—ÂÃ—Â Ã—â„¢Ã—Â© Ã—â€˜Ã—ÂªÃ—â€¢Ã—Â¦Ã—ÂÃ—â€¢Ã—Âª Ã—â€ºÃ—â€˜Ã—Â¨ Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â©Ã—â„¢Ã—Â¨ Ã¢â‚¬â€ Ã—Å“Ã—Â Ã—â€™Ã—Å¸ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â Ã—Å“Ã—â€Ã—â„¢Ã—ÂªÃ—Â§Ã—Â¢.
-   Ã—Â¨Ã—Â§ Ã—Å¾Ã—ÂªÃ—â€¢Ã—Å¡ playQueue: Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â€”Ã—â€œÃ—Â© Ã—Â¢Ã—â€¢Ã—Å“Ã—â€ 100 Ã—â„¢Ã—â€”Ã—â„¢Ã—â€œÃ—â€¢Ã—Âª Ã—Å¾Ã—â€ºÃ—Â¡Ã—â€. */
+/* אם יש בתוצאות כבר עותק אחר של אותו שיר — לנגן אותו במקום להיתקע.
+   רק מתוך playQueue: חיפוש חדש עולה 100 יחידות מכסה. */
 function altSource() {
   if (!track) return false;
   const k = normKey(track.t, track.a);
@@ -748,128 +735,6 @@ function altSource() {
   autoSwitch = true;
   playTrack(alt, true);
   return true;
-}
-
-/* ---------- Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨ Ã—â€”Ã—Å“Ã—â€¢Ã—Â¤Ã—â„¢ Ã—â€ºÃ—Â©Ã—â€Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Å¸ Ã—â€”Ã—Â¡Ã—â€¢Ã—Â Ã—Å“Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ ----------
-   Ã—â€™Ã—Â Ã—Â§Ã—ËœÃ—Å“Ã—â€¢Ã—â€™ Ã—â€¢Ã—â€™Ã—Â Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â„¢Ã—â€¢Ã—ËœÃ—â„¢Ã—â€¢Ã—â€˜ Ã—Å¾Ã—â€ºÃ—â„¢Ã—Å“Ã—â„¢Ã—Â Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Â Ã—â„¢Ã—Â Ã—Â©Ã—â€Ã—â„¢Ã—â€¢Ã—Â¦Ã—Â¨ Ã—Â¡Ã—â€™Ã—Â¨ Ã—Å“Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ (Ã—Â§Ã—â€¢Ã—â€œ 150).
-   Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â Ã—Å“Ã—â€Ã—â„¢Ã—ÂªÃ—Â§Ã—Â¢, Ã—Å¾Ã—â€”Ã—Â¤Ã—Â©Ã—â„¢Ã—Â Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â©Ã—â„¢Ã—Â¨ Ã¢â‚¬â€ Ã—â„¢Ã—â€¢Ã—ËœÃ—â„¢Ã—â€¢Ã—â€˜, Ã—â€¢Ã—ÂÃ—Â Ã—ÂÃ—â„¢Ã—Å¸ Ã¢â‚¬â€ Ã—ÂÃ—â€¢Ã—â€œÃ—â„¢Ã—â€¢ Ã—Å¾-Audius. */
-let altPlan = null, altBusy = false;
-let skipBudget = 0, lastSkipAt = 0;
-const altQueryCache = new Map();
-
-/* Ã—Å¾Ã—â„¢Ã—Å“Ã—â€¢Ã—Âª Ã—Â§Ã—â„¢Ã—Â©Ã—â€¢Ã—Â¨ Ã—â€¢Ã—Å¾Ã—â„¢Ã—Å“Ã—â€¢Ã—Âª Ã—Â¨Ã—Â¢Ã—Â© Ã—Å¾Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—â€¢Ã—Âª Ã—â„¢Ã—â€¢Ã—ËœÃ—â„¢Ã—â€¢Ã—â€˜ Ã¢â‚¬â€ Ã—Å“Ã—Â Ã—Å¾Ã—Â©Ã—Â¤Ã—â„¢Ã—Â¢Ã—â€¢Ã—Âª Ã—Â¢Ã—Å“ Ã—â€“Ã—â€Ã—â€¢Ã—Âª Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ */
-const NOISE_WORDS = new Set([
-  "official", "video", "lyric", "lyrics", "audio", "hd", "hq", "mv", "feat", "ft", "prod",
-  "live", "remaster", "remastered", "version", "cover", "remix", "instrumental", "acoustic", "music",
-  "Ã—Â§Ã—Å“Ã—â„¢Ã—Â¤", "Ã—Å¾Ã—â„¢Ã—Å“Ã—â„¢Ã—Â", "Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢", "Ã—â€Ã—â€¢Ã—Â¤Ã—Â¢Ã—â€", "Ã—Å“Ã—â„¢Ã—â„¢Ã—â€˜", "Ã—ÂÃ—â€¢Ã—â€œÃ—â„¢Ã—â€¢", "Ã—â€™Ã—Â¨Ã—Â¡Ã—â€", "Ã—Â§Ã—ÂÃ—â€˜Ã—Â¨", "Ã—Â¨Ã—Å¾Ã—â„¢Ã—Â§Ã—Â¡", "Ã—ÂÃ—â„¢Ã—Â Ã—Â¡Ã—ËœÃ—Â¨Ã—â€¢Ã—Å¾Ã—Â Ã—ËœÃ—Å“", "Ã—ÂÃ—Â§Ã—â€¢Ã—Â¡Ã—ËœÃ—â„¢", "Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨Ã—â„¢",
-]);
-
-const titleWords = (v) =>
-  normKey(v, "")
-    .split(" ")
-    .filter((w) => w.length > 1 && !NOISE_WORDS.has(w) && !/^(19|20)\d{2}$/.test(w));
-
-/* Ã—ÂÃ—â€¢Ã—ÂªÃ—â€ Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—Âª? Ã—Å¾Ã—Â©Ã—â€¢Ã—â€¢Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—Â©Ã—Â Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—Â¢Ã—Â¦Ã—Å¾Ã—â€¢ (Ã—â€˜Ã—Å“Ã—â„¢ Ã—Â©Ã—Â Ã—â€Ã—ÂÃ—Å¾Ã—Å¸ Ã—â€¢Ã—â€˜Ã—Å“Ã—â„¢ Ã—Å¾Ã—â„¢Ã—Å“Ã—â€¢Ã—Âª Ã—Â¨Ã—Â¢Ã—Â©).
-   Ã—â€Ã—ÂªÃ—ÂÃ—Å¾Ã—â€ Ã—â€”Ã—Å“Ã—Â§Ã—â„¢Ã—Âª Ã—â€Ã—â„¢Ã—â„¢Ã—ÂªÃ—â€ Ã—Å¾Ã—Â Ã—â€™Ã—Â Ã—Âª Ã—Â©Ã—â„¢Ã—Â¨ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—ÂÃ—Å¾Ã—Å¸ Ã¢â‚¬â€ Ã—Å“Ã—â€ºÃ—Å¸ Ã—â€Ã—Â¡Ã—Â£ Ã—â€™Ã—â€˜Ã—â€¢Ã—â€. */
-function sameSong(a, b, artist) {
-  const drop = new Set(titleWords(artist || ""));
-  const A = titleWords(a).filter((w) => !drop.has(w));
-  const B = titleWords(b);
-  if (!A.length || !B.length) return false;
-  let hits = 0;
-  for (const w of A) {
-    if (B.includes(w)) { hits += 1; continue; }
-    if (w.length > 3 && B.some((x) => x.length > 3 && (x.includes(w) || w.includes(x)))) hits += 0.5;
-  }
-  return hits / A.length >= (A.length <= 2 ? 1 : 0.7);
-}
-
-/* Ã—â€ºÃ—Å“ Ã—â€˜Ã—Â§Ã—Â©Ã—â€ Ã—Å¾Ã—â€¢Ã—â€™Ã—â€˜Ã—Å“Ã—Âª Ã—â€˜Ã—â€“Ã—Å¾Ã—Å¸: Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—ÂÃ—â„¢Ã—ËœÃ—â„¢ Ã—ÂÃ—â€¢ Ã—ÂªÃ—Â§Ã—â€¢Ã—Â¢ Ã—Å“Ã—Â Ã—Å¾Ã—Â©Ã—ÂÃ—â„¢Ã—Â¨ Ã—ÂÃ—Âª Ã—â€Ã—Â Ã—â€™Ã—Å¸ Ã—Â¢Ã—Å“ "Ã—Å¾Ã—â€”Ã—Â¤Ã—Â©Ã—â„¢Ã—ÂÃ¢â‚¬Â¦" */
-const withTimeout = (p, ms, fallback) =>
-  Promise.race([p, new Promise((res) => setTimeout(() => res(fallback), ms))]);
-
-async function altCandidates(tr) {
-  const out = [];
-  for (const t of playQueue) {
-    if (t.uid !== tr.uid && t.src !== "audius" && !triedUids.has(t.uid) && sameSong(tr.t, t.t, tr.a)) out.push(t);
-  }
-
-  const queries = [`${tr.t} ${tr.a}`.trim(), tr.t].map((q) => (q || "").trim()).filter(Boolean).slice(0, 2);
-  const matches = [];
-  const collect = (items) => {
-    for (const t of items || []) {
-      if (!t || t.src === "audius" || triedUids.has(t.uid) || !sameSong(tr.t, t.t, tr.a)) continue;
-      if (!matches.some((m) => m.uid === t.uid)) matches.push(t);
-    }
-  };
-  const fetchQuery = async (q, raw) => {
-    const cacheKey = (raw ? "raw:" : "api:") + q;
-    if (altQueryCache.has(cacheKey)) return altQueryCache.get(cacheKey);
-    let items = [];
-    try { items = await withTimeout(raw ? ytSearchRaw(q, 40) : ytSearch(q, 15), 5000, []); } catch (e) { items = []; }
-    altQueryCache.set(cacheKey, items);
-    return items;
-  };
-
-  /* Ã—Â§Ã—â€¢Ã—â€œÃ—Â Ã—â€Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â€Ã—Å¾Ã—Â¡Ã—â€¢Ã—Â Ã—Å¸ (Ã—Â¨Ã—Â§ Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Â Ã—â„¢Ã—Â Ã—Â©Ã—Å¾Ã—ÂÃ—Â¤Ã—Â©Ã—Â¨Ã—â„¢Ã—Â Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€), Ã—â€¢Ã—Â¨Ã—Â§ Ã—ÂÃ—Â Ã—ÂÃ—â„¢Ã—Å¸ Ã¢â‚¬â€ Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â€™Ã—â€¢Ã—Å“Ã—Å¾Ã—â„¢ */
-  for (const q of queries) {
-    collect(await fetchQuery(q, false));
-    if (matches.length) break;
-  }
-  if (!matches.length && queries[0]) collect(await fetchQuery(queries[0], true));
-
-  /* Ã—Å¾Ã—Â¡Ã—Â Ã—Â Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—Å¾Ã—â„¢ Ã—Â©Ã—â„¢Ã—â€œÃ—â€¢Ã—Â¢ Ã—Â©Ã—â€”Ã—Â¡Ã—â€¢Ã—Â Ã—â€¢Ã—Å¾Ã—Â¢Ã—â€œÃ—â„¢Ã—Â¤Ã—â„¢Ã—Â Ã—Å¾Ã—â„¢ Ã—Â©Ã—Â Ã—â€˜Ã—â€œÃ—Â§ Ã—â€¢Ã—Å¾Ã—ÂÃ—Â¤Ã—Â©Ã—Â¨ Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ */
-  let status = new Map();
-  try { status = await withTimeout(ytEmbedStatus(matches.map((t) => t.vid)), 3500, new Map()); } catch (e) {}
-  const verified = matches.filter((t) => status.get(t.vid) === true);
-  const unknown = matches.filter((t) => status.get(t.vid) !== true && status.get(t.vid) !== false);
-  out.push(...verified, ...unknown);
-
-  if (out.length) return out;
-  try {
-    const audio = await withTimeout(audiusSearch(`${tr.t} ${tr.a}`.trim(), 10), 2500, []);
-    const hit = (audio || []).find((t) => sameSong(tr.t, t.t, tr.a) && (!tr.d || !t.d || Math.abs(t.d - tr.d) <= 60));
-    if (hit) out.push({ ...hit, uid: tr.uid, t: tr.t, a: tr.a, art: tr.art || hit.art, link: tr.link, d: hit.d || tr.d });
-  } catch (e) {}
-  return out;
-}
-
-/* Ã—Å¾Ã—Â Ã—â€™Ã—Å¸ Ã—ÂÃ—Âª Ã—â€Ã—Å¾Ã—â€¢Ã—Â¢Ã—Å¾Ã—â€œ Ã—â€Ã—â€˜Ã—Â Ã—Å“Ã—Â©Ã—â„¢Ã—Â¨; Ã—ÂÃ—Â Ã—ÂÃ—â€“Ã—Å“Ã—â€¢ Ã¢â‚¬â€ Ã—Å¾Ã—Â¦Ã—â„¢Ã—â€™Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—â€¢Ã—â€œÃ—Â¢Ã—Âª Ã—â€Ã—Â©Ã—â€™Ã—â„¢Ã—ÂÃ—â€ */
-async function tryOtherSource(tr, code) {
-  if (altBusy) return;
-  altBusy = true;
-  triedUids.add(tr.uid);
-  try {
-    if (!altPlan) {
-      stage.classList.add("note");
-      stage.innerHTML = '<p class="notice">Ã—Å¾Ã—â€”Ã—Å“Ã—â„¢Ã—Â¤Ã—â„¢Ã—Â Ã—Å“Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â©Ã—â„¢Ã—Â¨Ã¢â‚¬Â¦</p>';
-      const list = await altCandidates(tr);
-      altPlan = { list, index: 0 };
-    }
-    const next = altPlan.list[altPlan.index++];
-    if (!next) {
-      altPlan = null;
-      /* Ã—ÂÃ—â„¢Ã—Å¸ Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—Â¢Ã—â€¢Ã—â€˜Ã—â€œ Ã¢â‚¬â€ Ã—Å“Ã—Â Ã—Â¢Ã—â€¢Ã—Â¦Ã—Â¨Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—Å¾Ã—â€¢Ã—â€“Ã—â„¢Ã—Â§Ã—â€: Ã—Å¾Ã—â€œÃ—Å“Ã—â€™Ã—â„¢Ã—Â Ã—Å“Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€Ã—â€˜Ã—Â */
-      if (Date.now() - lastSkipAt > 20000) skipBudget = 6;
-      if (skipBudget > 0) {
-        skipBudget--;
-        lastSkipAt = Date.now();
-        setPlaying(false);
-        step(1);
-        return;
-      }
-      note(track ? track.vid : tr.vid, code);
-      return;
-    }
-    triedUids.add(next.uid);
-    autoSwitch = true;
-    playTrack(next, true);
-  } catch (e) {
-    altPlan = null;
-    note(track ? track.vid : tr.vid, code);
-  } finally {
-    altBusy = false;
-  }
 }
 
 const safe = (fn, d) => { try { const v = fn(); return v == null || isNaN(v) ? d : v; } catch (e) { return d; } };
@@ -888,9 +753,9 @@ function note(id, code) {
   setPlaying(false);
   engine = null;
   const why = location.protocol === "file:"
-    ? "Ã—â€Ã—Â§Ã—â€¢Ã—â€˜Ã—Â¥ Ã—Â Ã—Â¤Ã—ÂªÃ—â€” Ã—â„¢Ã—Â©Ã—â„¢Ã—Â¨Ã—â€¢Ã—Âª Ã—Å¾Ã—â€Ã—ÂªÃ—â„¢Ã—Â§Ã—â„¢Ã—â„¢Ã—â€ Ã—â€¢Ã—â€Ã—Â Ã—â€™Ã—Å¸ Ã—Å“Ã—Â Ã—Â¢Ã—â€¢Ã—â€˜Ã—â€œ Ã—â€ºÃ—â€ºÃ—â€. Ã—Â¤Ã—ÂªÃ—â€” Ã—ÂÃ—Âª start.bat Ã¢â‚¬â€ Ã—â€“Ã—â€ Ã—Å¾Ã—Â¤Ã—Â¢Ã—â„¢Ã—Å“ Ã—Â©Ã—Â¨Ã—Âª Ã—Å¾Ã—Â§Ã—â€¢Ã—Å¾Ã—â„¢ Ã—â€¢Ã—ÂÃ—â€“ Ã—â„¢Ã—Â© Ã—Â¦Ã—Å“Ã—â„¢Ã—Å“."
-    : `Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â€¢Ã—Âª Ã—Â¡Ã—â„¢Ã—Â¨Ã—â€˜ Ã—Å“Ã—Â Ã—â€™Ã—Å¸ Ã—ÂÃ—Âª Ã—â€Ã—â€¢Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—â€Ã—â€“Ã—â€ (Ã—Â§Ã—â€¢Ã—â€œ ${code}) Ã¢â‚¬â€ Ã—â„¢Ã—â„¢Ã—ÂªÃ—â€ºÃ—Å¸ Ã—Â©Ã—â€Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã—â€˜Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Å¸ Ã—â€Ã—â€“Ã—â€ Ã—Â Ã—Â¡Ã—â€™Ã—Â¨Ã—â€.
-       <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Ã—ÂÃ—â€¢ Ã—Â¦Ã—Â¤Ã—â€ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨</a>`;
+    ? "הקובץ נפתח ישירות מהתיקייה והנגן לא עובד ככה. פתח את start.bat — זה מפעיל שרת מקומי ואז יש צליל."
+    : `השירות סירב לנגן את הווידאו הזה (קוד ${code}) — ייתכן שההטמעה בסרטון הזה נסגרה.
+       <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">או צפה במקור</a>`;
   stage.innerHTML = `<p class="notice">${why}</p>`;
   stage.classList.add("note");
 }
@@ -899,8 +764,8 @@ function stalled() {
   const id = track ? track.vid : want;
   setPlaying(false);
   engine = null;
-  stage.innerHTML = `<p class="notice">Ã—â€Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Å¸ Ã—â€”Ã—Â¡Ã—Â Ã—ÂÃ—Âª Ã—ÂªÃ—â€”Ã—â„¢Ã—Å“Ã—Âª Ã—â€Ã—Â Ã—â€™Ã—â„¢Ã—Â Ã—â€. Ã—Å“Ã—â€”Ã—â„¢Ã—Â¦Ã—â€ Ã—Â Ã—â€¢Ã—Â¡Ã—Â¤Ã—Âª Ã—Â¢Ã—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€˜Ã—â€œÃ—Â¨Ã—Å¡ Ã—â€ºÃ—Å“Ã—Å“ Ã—Â¤Ã—â€¢Ã—ÂªÃ—â€”Ã—Âª Ã—ÂÃ—â€¢Ã—ÂªÃ—â€.
-    ${id ? `<a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Ã—ÂÃ—â€¢ Ã—Â¦Ã—Â¤Ã—â€ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨</a>` : ""}</p>`;
+  stage.innerHTML = `<p class="notice">הדפדפן חסם את תחילת הנגינה. לחיצה נוספת על השיר בדרך כלל פותחת אותה.
+    ${id ? `<a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">או צפה במקור</a>` : ""}</p>`;
   stage.classList.add("note");
 }
 
@@ -953,7 +818,7 @@ bar.addEventListener("click", (e) => {
 
 function setVolume(e) {
   const r = volBar.getBoundingClientRect();
-  /* Ã—â€Ã—Â¨Ã—Å¾Ã—Â§Ã—â€¢Ã—Å“ Ã—Å“Ã—Â Ã—â„¢Ã—â€¢Ã—Â¨Ã—â€œ Ã—Å¾Ã—ÂªÃ—â€”Ã—Âª Ã—Å“Ã–Â¾1 Ã¢â‚¬â€ Ã—Å“Ã—â€”Ã—â„¢Ã—Â¦Ã—â€ Ã—Â¢Ã—Å“ Ã—Â§Ã—Â¦Ã—â€ Ã—â€Ã—Â¡Ã—Â¨Ã—â€™Ã—Å“ Ã—Å“Ã—Â Ã—Å¾Ã—Â©Ã—ÂªÃ—â„¢Ã—Â§Ã—â€ Ã—ÂÃ—Âª Ã—â€Ã—ÂÃ—Â¤Ã—Å“Ã—â„¢Ã—Â§Ã—Â¦Ã—â„¢Ã—â€; Ã—â€ºÃ—â„¢Ã—â€˜Ã—â€¢Ã—â„¢ Ã—Â¨Ã—Â§ Ã—â€˜Ã—â€ºÃ—Â¤Ã—ÂªÃ—â€¢Ã—Â¨ Ã—â€Ã—â€Ã—Â©Ã—ÂªÃ—Â§Ã—â€ */
+  /* הרמקול לא יורד מתחת ל־1 — לחיצה על קצה הסרגל לא משתיקה את האפליקציה; כיבוי רק בכפתור ההשתקה */
   volume = Math.round(Math.max(1, Math.min(Math.max((r.right - e.clientX) / r.width, 0), 1) * 100));
   volFill.style.width = `${volume}%`;
   if (engine === "audio") audioEl.volume = volume / 100;
@@ -1030,34 +895,6 @@ menuBtn.addEventListener("click", () => {
 document.querySelectorAll(".rail-btn").forEach((a) => a.addEventListener("click", closeMenu));
 
 el("npLike").innerHTML = HEART;
-
-/* ---------- Ã—â€˜Ã—Â§Ã—Â¨Ã—â€¢Ã—Âª Ã—â€”Ã—Å“Ã—â€¢Ã—Å¸ ---------- */
-winClose.addEventListener("click", () => { try { window.close(); } catch (e) {} });
-
-let full = false;
-winFull.addEventListener("click", () => {
-  const el = document.documentElement;
-  if (!full) {
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-  }
-});
-document.addEventListener("fullscreenchange", () => {
-  full = !!document.fullscreenElement;
-  if (winFull) winFull.classList.toggle("on", full);
-});
-
-let hidden = false;
-winHide.addEventListener("click", () => {
-  hidden = !hidden;
-  document.body.classList.toggle("app-hidden", hidden);
-  if (winHide) winHide.classList.toggle("on", hidden);
-  if (hidden) document.getElementById("menuBtn")?.setAttribute("aria-expanded", "false");
-});
-
 renderPlaylists();
 checkProviders();
 route();
