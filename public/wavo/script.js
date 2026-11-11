@@ -50,17 +50,17 @@ const audioEl = new Audio();
 audioEl.preload = "auto";
 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-const songsWord = (n) => (n === 1 ? "×©×™×¨ ××—×“" : `${n} ×©×™×¨×™×`);
+const songsWord = (n) => (n === 1 ? "Ã—Â©Ã—â„¢Ã—Â¨ Ã—ÂÃ—â€”Ã—â€œ" : `${n} Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â`);
 const duration = () => (engine === "audio" ? audioEl.duration || track?.d || 0 : (yt && yt.getDuration ? yt.getDuration() : track?.d) || 0);
 const nowOf = () => (engine === "audio" ? audioEl.currentTime : (yt && yt.getCurrentTime ? yt.getCurrentTime() : elapsed));
 const greeting = () => {
   const h = new Date().getHours();
-  return h < 5 ? "×œ×™×œ×” ×˜×•×‘" : h < 12 ? "×‘×•×§×¨ ×˜×•×‘" : h < 17 ? "×¦×”×¨×™×™× ×˜×•×‘×™×" : h < 21 ? "×¢×¨×‘ ×˜×•×‘" : "×œ×™×œ×” ×˜×•×‘";
+  return h < 5 ? "Ã—Å“Ã—â„¢Ã—Å“Ã—â€ Ã—ËœÃ—â€¢Ã—â€˜" : h < 12 ? "Ã—â€˜Ã—â€¢Ã—Â§Ã—Â¨ Ã—ËœÃ—â€¢Ã—â€˜" : h < 17 ? "Ã—Â¦Ã—â€Ã—Â¨Ã—â„¢Ã—â„¢Ã—Â Ã—ËœÃ—â€¢Ã—â€˜Ã—â„¢Ã—Â" : h < 21 ? "Ã—Â¢Ã—Â¨Ã—â€˜ Ã—ËœÃ—â€¢Ã—â€˜" : "Ã—Å“Ã—â„¢Ã—Å“Ã—â€ Ã—ËœÃ—â€¢Ã—â€˜";
 };
 
 miniCover.src = thumb(songs[0].yt);
 
-/* ---------- ×©×•×¨×•×ª ---------- */
+/* ---------- Ã—Â©Ã—â€¢Ã—Â¨Ã—â€¢Ã—Âª ---------- */
 function rowShell(tr, pos) {
   const row = document.createElement("div");
   row.className = "row";
@@ -72,11 +72,11 @@ function rowShell(tr, pos) {
     <div><p class="song-title"></p><p class="song-sub"></p></div>
     <span class="row-album"></span>
     <span class="row-time"></span>
-    <button class="icon-btn sm heart" aria-label="××”×‘"></button>`;
+    <button class="icon-btn sm heart" aria-label="Ã—ÂÃ—â€Ã—â€˜"></button>`;
   row.querySelector(".song-title").textContent = tr.t;
-  row.querySelector(".song-sub").textContent = tr.al ? `${tr.a} Â· ${tr.al}` : tr.a;
+  row.querySelector(".song-sub").textContent = tr.al ? `${tr.a} Ã‚Â· ${tr.al}` : tr.a;
   row.querySelector(".row-album").textContent = tr.a;
-  row.querySelector(".row-time").textContent = tr.d ? mmss(tr.d) : "â€”";
+  row.querySelector(".row-time").textContent = tr.d ? mmss(tr.d) : "Ã¢â‚¬â€";
   const heart = row.querySelector(".heart");
   heart.innerHTML = HEART;
   heart.dataset.id = tr.uid;
@@ -100,7 +100,7 @@ function drawMore() {
   const more = el("more");
   if (more) {
     more.hidden = drawn >= queue.length;
-    more.textContent = `×˜×¢×Ÿ ×¢×•×“ (${queue.length - drawn})`;
+    more.textContent = `Ã—ËœÃ—Â¢Ã—Å¸ Ã—Â¢Ã—â€¢Ã—â€œ (${queue.length - drawn})`;
   }
 }
 
@@ -114,7 +114,7 @@ function mountList(indices, withMore = true) {
   if (!indices.length) {
     const empty = document.createElement("p");
     empty.className = "no-results on";
-    empty.textContent = "××™×Ÿ ×ž×” ×œ×”×¦×™×’ ×›××Ÿ";
+    empty.textContent = "Ã—ÂÃ—â„¢Ã—Å¸ Ã—Å¾Ã—â€ Ã—Å“Ã—â€Ã—Â¦Ã—â„¢Ã—â€™ Ã—â€ºÃ—ÂÃ—Å¸";
     viewEl.appendChild(empty);
   }
   if (withMore) {
@@ -135,14 +135,14 @@ scroller.addEventListener("scroll", () => {
   if (scroller.scrollTop + scroller.clientHeight > scroller.scrollHeight - 600) drawMore();
 });
 
-/* ---------- ×¤×œ×™×™×œ×™×¡×˜×™× ×‘×¦×“ ---------- */
+/* ---------- Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—ËœÃ—â„¢Ã—Â Ã—â€˜Ã—Â¦Ã—â€œ ---------- */
 function playlistItems() {
   const items = [
-    { n: "×›×œ ×”×©×™×¨×™×", s: `×¤×œ×™×™×œ×™×¡×˜ Â· ${songsWord(songs.length)}`, h: "#/library", art: thumb(songs[0].yt) },
-    { n: "×©×™×¨×™× ×©××”×‘×ª×™", s: `×¤×œ×™×™×œ×™×¡×˜ Â· ${songsWord(likes.size)}`, h: "#/liked", heart: true },
+    { n: "Ã—â€ºÃ—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â", s: `Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—Ëœ Ã‚Â· ${songsWord(songs.length)}`, h: "#/library", art: thumb(songs[0].yt) },
+    { n: "Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—ÂÃ—â€Ã—â€˜Ã—ÂªÃ—â„¢", s: `Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—Ëœ Ã‚Â· ${songsWord(likes.size)}`, h: "#/liked", heart: true },
   ];
   topArtists.forEach((a) =>
-    items.push({ n: a, s: `××ž×Ÿ Â· ${songsWord(artistCount(a))}`, h: `#/artist/${encodeURIComponent(a)}`, art: thumb(songs.find((x) => x.a === a).yt) })
+    items.push({ n: a, s: `Ã—ÂÃ—Å¾Ã—Å¸ Ã‚Â· ${songsWord(artistCount(a))}`, h: `#/artist/${encodeURIComponent(a)}`, art: thumb(songs.find((x) => x.a === a).yt) })
   );
   return items;
 }
@@ -172,7 +172,7 @@ el("libFilter").addEventListener("input", (e) => {
   renderPlaylists();
 });
 
-/* ---------- ×›×¨×˜×™×¡×™× ---------- */
+/* ---------- Ã—â€ºÃ—Â¨Ã—ËœÃ—â„¢Ã—Â¡Ã—â„¢Ã—Â ---------- */
 function section(title, sub) {
   const wrap = document.createElement("section");
   wrap.className = "sec";
@@ -213,7 +213,7 @@ function artistCard(a) {
   return c;
 }
 
-/* ---------- ×ª×¦×•×’×•×ª ---------- */
+/* ---------- Ã—ÂªÃ—Â¦Ã—â€¢Ã—â€™Ã—â€¢Ã—Âª ---------- */
 function recommended(n) {
   const seed = {};
   history.forEach((t) => { if (t && t.a) seed[t.a] = (seed[t.a] || 0) + 2; });
@@ -232,38 +232,38 @@ function renderHome() {
   viewEl.innerHTML = `<h1 class="greet">${greeting()}</h1>`;
 
   if (history.length) {
-    const cont = section("×”×ž×©×š ×”××–× ×”");
+    const cont = section("Ã—â€Ã—Å¾Ã—Â©Ã—Å¡ Ã—â€Ã—ÂÃ—â€“Ã—Â Ã—â€");
     const row = document.createElement("div");
     row.className = "wrow";
     history.slice(0, 6).forEach((t) => row.appendChild(wideCard(t)));
     cont.appendChild(row);
   }
 
-  const rec = section("×ž×•×ž×œ×¥ ×‘×©×‘×™×œ×š", history.length ? "×œ×¤×™ ×ž×” ×©×©×ž×¢×ª" : "×œ×—×¥ ×¢×œ ×©×™×¨ ×›×“×™ ×œ×”×ª×—×™×œ");
+  const rec = section("Ã—Å¾Ã—â€¢Ã—Å¾Ã—Å“Ã—Â¥ Ã—â€˜Ã—Â©Ã—â€˜Ã—â„¢Ã—Å“Ã—Å¡", history.length ? "Ã—Å“Ã—Â¤Ã—â„¢ Ã—Å¾Ã—â€ Ã—Â©Ã—Â©Ã—Å¾Ã—Â¢Ã—Âª" : "Ã—Å“Ã—â€”Ã—Â¥ Ã—Â¢Ã—Å“ Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€ºÃ—â€œÃ—â„¢ Ã—Å“Ã—â€Ã—ÂªÃ—â€”Ã—â„¢Ã—Å“");
   const grid = document.createElement("div");
   grid.className = "grid";
   recommended(8).forEach((t) => grid.appendChild(tile(t)));
   rec.appendChild(grid);
 
-  const pop = section("××ž× ×™×");
+  const pop = section("Ã—ÂÃ—Å¾Ã—Â Ã—â„¢Ã—Â");
   const pg = document.createElement("div");
   pg.className = "browse";
   topArtists.slice(0, 8).forEach((a) => pg.appendChild(artistCard(a)));
   pop.appendChild(pg);
 
-  const all = section("×›×œ ×”×©×™×¨×™×");
+  const all = section("Ã—â€ºÃ—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â");
   const link = document.createElement("a");
   link.className = "link-all";
   link.href = "#/library";
-  link.textContent = `×œ×›×œ ${songs.length} ×”×©×™×¨×™× ×‘×¡×¤×¨×™×™×” â†`;
+  link.textContent = `Ã—Å“Ã—â€ºÃ—Å“ ${songs.length} Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—â€˜Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€ Ã¢â€ Â`;
   all.appendChild(link);
 }
 
 function renderSearch() {
   const q = el("search").value.trim();
-  viewEl.innerHTML = `<h1 class="greet">×—×™×¤×•×©</h1>`;
+  viewEl.innerHTML = `<h1 class="greet">Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â©</h1>`;
   if (!q) {
-    const browse = section("×¢×™×™×Ÿ ×œ×¤×™ ××ž×Ÿ");
+    const browse = section("Ã—Â¢Ã—â„¢Ã—â„¢Ã—Å¸ Ã—Å“Ã—Â¤Ã—â„¢ Ã—ÂÃ—Å¾Ã—Å¸");
     const grid = document.createElement("div");
     grid.className = "browse";
     topArtists.forEach((a) => grid.appendChild(artistCard(a)));
@@ -277,7 +277,7 @@ function renderSearch() {
   viewEl.appendChild(box);
   const line = document.createElement("p");
   line.className = "srcline on";
-  line.textContent = "×ž×—×¤×© ×‘×›×œ ×”×ž×§×•×¨×•×ªâ€¦";
+  line.textContent = "Ã—Å¾Ã—â€”Ã—Â¤Ã—Â© Ã—â€˜Ã—â€ºÃ—Å“ Ã—â€Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨Ã—â€¢Ã—ÂªÃ¢â‚¬Â¦";
   viewEl.appendChild(line);
 
   let count = 0;
@@ -293,14 +293,14 @@ function renderSearch() {
       okSrc.add(id);
       items.forEach((tr, n) => { box.appendChild(rowShell(tr, from + n)); playQueue.push(tr); });
     }
-    if (count) line.textContent = `${songsWord(count)} ×žÖ¾${okSrc.size} ×ž×§×•×¨×•×ª`;
+    if (count) line.textContent = `${songsWord(count)} Ã—Å¾Ã–Â¾${okSrc.size} Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨Ã—â€¢Ã—Âª`;
   }).then(() => {
     if (token !== searchToken) return;
     if (!count) {
       box.remove();
       const p = document.createElement("p");
       p.className = "no-results on";
-      p.textContent = "××£ ×ž×§×•×¨ ×œ× ×ž×¦× ×©×™×¨ ×©××¤×©×¨ ×œ× ×’×Ÿ. × ×¡×” ×©× ×©×œ ××ž×Ÿ ××• ×›×•×ª×¨×ª ×‘×× ×’×œ×™×ª, ××• ×‘×œ×™ ×ž×™×œ×™× ×›×ž×• '×§×œ×™×¤'.";
+      p.textContent = "Ã—ÂÃ—Â£ Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨ Ã—Å“Ã—Â Ã—Å¾Ã—Â¦Ã—Â Ã—Â©Ã—â„¢Ã—Â¨ Ã—Â©Ã—ÂÃ—Â¤Ã—Â©Ã—Â¨ Ã—Å“Ã—Â Ã—â€™Ã—Å¸. Ã—Â Ã—Â¡Ã—â€ Ã—Â©Ã—Â Ã—Â©Ã—Å“ Ã—ÂÃ—Å¾Ã—Å¸ Ã—ÂÃ—â€¢ Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—Âª Ã—â€˜Ã—ÂÃ—Â Ã—â€™Ã—Å“Ã—â„¢Ã—Âª, Ã—ÂÃ—â€¢ Ã—â€˜Ã—Å“Ã—â„¢ Ã—Å¾Ã—â„¢Ã—Å“Ã—â„¢Ã—Â Ã—â€ºÃ—Å¾Ã—â€¢ 'Ã—Â§Ã—Å“Ã—â„¢Ã—Â¤'.";
       viewEl.appendChild(p);
       line.textContent = "";
     }
@@ -311,18 +311,18 @@ function renderSearch() {
 function headRow() {
   const head = document.createElement("div");
   head.className = "row row-head";
-  head.innerHTML = "<span>#</span><span></span><span>×›×•×ª×¨×ª</span><span>××ž×Ÿ</span><span>×–×ž×Ÿ</span><span></span>";
+  head.innerHTML = "<span>#</span><span></span><span>Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—Âª</span><span>Ã—ÂÃ—Å¾Ã—Å¸</span><span>Ã—â€“Ã—Å¾Ã—Å¸</span><span></span>";
   return head;
 }
 
 function renderLibrary() {
-  viewEl.innerHTML = `<h1 class="greet">×”×¡×¤×¨×™×™×” ×©×œ×š</h1>`;
+  viewEl.innerHTML = `<h1 class="greet">Ã—â€Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€ Ã—Â©Ã—Å“Ã—Å¡</h1>`;
   viewEl.appendChild(headRow());
   mountList(songs.map((_, i) => i));
 }
 
 function renderLiked() {
-  viewEl.innerHTML = `<h1 class="greet">×©×™×¨×™× ×©××”×‘×ª×™</h1>`;
+  viewEl.innerHTML = `<h1 class="greet">Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—ÂÃ—â€Ã—â€˜Ã—ÂªÃ—â„¢</h1>`;
   const list = likedTracks();
   if (list.length) {
     viewEl.appendChild(headRow());
@@ -338,7 +338,7 @@ function renderLiked() {
   }
   const p = document.createElement("p");
   p.className = "no-results on";
-  p.textContent = "×¢×“×™×™×Ÿ ×œ× ××”×‘×ª ×©×™×¨×™× â€” ×œ×—×¥ ×¢×œ ×”×œ×‘ ×‘×›×œ ×©×™×¨";
+  p.textContent = "Ã—Â¢Ã—â€œÃ—â„¢Ã—â„¢Ã—Å¸ Ã—Å“Ã—Â Ã—ÂÃ—â€Ã—â€˜Ã—Âª Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã¢â‚¬â€ Ã—Å“Ã—â€”Ã—Â¥ Ã—Â¢Ã—Å“ Ã—â€Ã—Å“Ã—â€˜ Ã—â€˜Ã—â€ºÃ—Å“ Ã—Â©Ã—â„¢Ã—Â¨";
   viewEl.appendChild(p);
 }
 
@@ -348,7 +348,7 @@ function renderArtist(name) {
     viewEl.innerHTML = `<h1 class="greet">${h(name)}</h1>`;
     const p = document.createElement("p");
     p.className = "no-results on";
-    p.textContent = "×œ× ×ž×¦×× ×• ×©×™×¨×™× ×©×œ ×”××ž×Ÿ ×”×–×” ×‘×¡×¤×¨×™×™×”";
+    p.textContent = "Ã—Å“Ã—Â Ã—Å¾Ã—Â¦Ã—ÂÃ—Â Ã—â€¢ Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—Å“ Ã—â€Ã—ÂÃ—Å¾Ã—Å¸ Ã—â€Ã—â€“Ã—â€ Ã—â€˜Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€";
     viewEl.appendChild(p);
     return;
   }
@@ -356,8 +356,8 @@ function renderArtist(name) {
   viewEl.innerHTML = `
     <section class="ahero">
       <img alt="" src="${thumb(s.yt)}">
-      <div><p class="kind">×¤×œ×™×™×œ×™×¡×˜ Â· ××ž×Ÿ</p><h1></h1>
-      <p class="desc">${songsWord(idx.length)} ×–×ž×™× ×™× Â· ${Math.round(idx.reduce((n, i) => n + songs[i].d, 0) / 60)} ×“×§×•×ª Â· ×•×™×“××• ×¨×©×ž×™</p>
+      <div><p class="kind">Ã—Â¤Ã—Å“Ã—â„¢Ã—â„¢Ã—Å“Ã—â„¢Ã—Â¡Ã—Ëœ Ã‚Â· Ã—ÂÃ—Å¾Ã—Å¸</p><h1></h1>
+      <p class="desc">${songsWord(idx.length)} Ã—â€“Ã—Å¾Ã—â„¢Ã—Â Ã—â„¢Ã—Â Ã‚Â· ${Math.round(idx.reduce((n, i) => n + songs[i].d, 0) / 60)} Ã—â€œÃ—Â§Ã—â€¢Ã—Âª Ã‚Â· Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢</p>
       <button class="play-big" id="playArtist">${PLAY}</button></div>
     </section>`;
   viewEl.querySelector("h1").textContent = name;
@@ -366,7 +366,7 @@ function renderArtist(name) {
   mountList(idx);
 }
 
-/* ---------- ×œ×•×— × ×™×’×•×Ÿ ---------- */
+/* ---------- Ã—Å“Ã—â€¢Ã—â€” Ã—Â Ã—â„¢Ã—â€™Ã—â€¢Ã—Å¸ ---------- */
 function relatedTracks(tr) {
   if (tr.src === "catalog") {
     return songs.map((_, i) => i).filter((i) => songs[i].a === tr.a && i !== tr.i).slice(0, 6).map(localTrack);
@@ -376,25 +376,25 @@ function relatedTracks(tr) {
 
 function renderNp(tr) {
   if (!tr) return;
-  el("npBased").textContent = `×ž×‘×•×¡×¡ ×¢×œ ${tr.t}`;
+  el("npBased").textContent = `Ã—Å¾Ã—â€˜Ã—â€¢Ã—Â¡Ã—Â¡ Ã—Â¢Ã—Å“ ${tr.t}`;
   const box = el("npBody");
-  const kind = tr.src === "catalog" || tr.src === "yt" ? "×•×™×“××• ×¨×©×ž×™" : "×”×–×¨×ž×” ×ž×œ××”";
+  const kind = tr.src === "catalog" || tr.src === "yt" ? "Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢" : "Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—Å¾Ã—Å“Ã—ÂÃ—â€";
   box.innerHTML = `
-    <div class="np-art"><img alt="" src="${h(tr.art)}"><button class="np-fab" id="npFab" aria-label="×”×¤×¢×œ / ×”×©×”×”">${toggle.innerHTML}</button></div>
+    <div class="np-art"><img alt="" src="${h(tr.art)}"><button class="np-fab" id="npFab" aria-label="Ã—â€Ã—Â¤Ã—Â¢Ã—Å“ / Ã—â€Ã—Â©Ã—â€Ã—â€">${toggle.innerHTML}</button></div>
     <p class="np-kind">${kind}</p>
     <h3 class="np-t"></h3>
-    <p class="np-a"><span class="np-by"></span>${tr.src === "catalog" ? `<span class="badge" title="×•×™×“××• ×ž×”×¢×¨×•×¥ ×”×¨×©×ž×™ ×©×œ ×”××ž×Ÿ">${CHECK}</span>` : ""}</p>
+    <p class="np-a"><span class="np-by"></span>${tr.src === "catalog" ? `<span class="badge" title="Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Å¾Ã—â€Ã—Â¢Ã—Â¨Ã—â€¢Ã—Â¥ Ã—â€Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢ Ã—Â©Ã—Å“ Ã—â€Ã—ÂÃ—Å¾Ã—Å¸">${CHECK}</span>` : ""}</p>
     <p class="np-meta"></p>
     <div class="np-acts">
-      <button class="icon-btn sm heart" id="npHeart" aria-label="××”×‘"></button>
+      <button class="icon-btn sm heart" id="npHeart" aria-label="Ã—ÂÃ—â€Ã—â€˜"></button>
       
     </div>
     <div id="npMore"></div>`;
   box.querySelector(".np-t").textContent = tr.t;
   box.querySelector(".np-by").textContent = tr.a;
   box.querySelector(".np-meta").textContent = tr.src === "catalog"
-    ? `${songsWord(artistCount(tr.a))} ×©×œ ${tr.a} ×‘×¡×¤×¨×™×™×” Â· ${tr.d ? mmss(tr.d) : "â€”"} Â· ×•×™×“××• ×¨×©×ž×™`
-    : `${tr.al ? tr.al + " Â· " : ""}${tr.d ? mmss(tr.d) : "â€”"}`;
+    ? `${songsWord(artistCount(tr.a))} Ã—Â©Ã—Å“ ${tr.a} Ã—â€˜Ã—Â¡Ã—Â¤Ã—Â¨Ã—â„¢Ã—â„¢Ã—â€ Ã‚Â· ${tr.d ? mmss(tr.d) : "Ã¢â‚¬â€"} Ã‚Â· Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢`
+    : `${tr.al ? tr.al + " Ã‚Â· " : ""}${tr.d ? mmss(tr.d) : "Ã¢â‚¬â€"}`;
 
   const heart = box.querySelector("#npHeart");
   heart.innerHTML = HEART;
@@ -405,13 +405,13 @@ function renderNp(tr) {
 
   const more = box.querySelector("#npMore");
   if (tr.src === "catalog") {
-    more.innerHTML = `<h4 class="np-h">×¢×•×“ ×©×œ ${h(tr.a)}</h4><div class="np-list"></div>`;
+    more.innerHTML = `<h4 class="np-h">Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—Å“ ${h(tr.a)}</h4><div class="np-list"></div>`;
     const list = more.querySelector(".np-list");
     relatedTracks(tr).concat(recommended(10 - Math.min(6, relatedTracks(tr).length)))
       .slice(0, 10)
       .forEach((t) => list.appendChild(npRow(t)));
   } else if (tr.src === "audius") {
-    more.innerHTML = `<h4 class="np-h">×¢×•×“ ×©×œ ${h(tr.a)}</h4><p class="np-load">×˜×•×¢×Ÿâ€¦</p>`;
+    more.innerHTML = `<h4 class="np-h">Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—Å“ ${h(tr.a)}</h4><p class="np-load">Ã—ËœÃ—â€¢Ã—Â¢Ã—Å¸Ã¢â‚¬Â¦</p>`;
     audiusSearch(tr.a, 8).then((items) => {
       if (!track || track.uid !== tr.uid) return;
       more.querySelector(".np-load").remove();
@@ -419,8 +419,8 @@ function renderNp(tr) {
       l.className = "np-list";
       more.appendChild(l);
       items.filter((t) => t.uid !== tr.uid).slice(0, 8).forEach((t) => l.appendChild(npRow(t)));
-      if (!l.children.length) more.insertAdjacentHTML("beforeend", `<p class="np-note">××™×Ÿ ×¢×•×“ ×©×™×¨×™× ×©×œ ×”××ž×Ÿ ×”×–×” ×–×ž×™× ×™× ×œ×”×©×ž×¢×”</p>`);
-    }).catch(() => { more.querySelector(".np-load").textContent = "×œ× ×”×¦×œ×—× ×• ×œ×ž×©×•×š ×¢×•×“ ×©×™×¨×™× ×ž×”×¡×¤×§"; });
+      if (!l.children.length) more.insertAdjacentHTML("beforeend", `<p class="np-note">Ã—ÂÃ—â„¢Ã—Å¸ Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Â©Ã—Å“ Ã—â€Ã—ÂÃ—Å¾Ã—Å¸ Ã—â€Ã—â€“Ã—â€ Ã—â€“Ã—Å¾Ã—â„¢Ã—Â Ã—â„¢Ã—Â Ã—Å“Ã—â€Ã—Â©Ã—Å¾Ã—Â¢Ã—â€</p>`);
+    }).catch(() => { more.querySelector(".np-load").textContent = "Ã—Å“Ã—Â Ã—â€Ã—Â¦Ã—Å“Ã—â€”Ã—Â Ã—â€¢ Ã—Å“Ã—Å¾Ã—Â©Ã—â€¢Ã—Å¡ Ã—Â¢Ã—â€¢Ã—â€œ Ã—Â©Ã—â„¢Ã—Â¨Ã—â„¢Ã—Â Ã—Å¾Ã—â€Ã—Â¡Ã—Â¤Ã—Â§"; });
   }
 }
 
@@ -430,7 +430,7 @@ function npRow(tr) {
   r._tr = tr;
   r.innerHTML = `<img loading="lazy" alt="" src="${h(tr.art)}"><span><b></b><i></i></span><em></em>`;
   r.querySelector("b").textContent = tr.t;
-  r.querySelector("i").textContent = tr.al ? `${tr.a} Â· ${tr.al}` : tr.a;
+  r.querySelector("i").textContent = tr.al ? `${tr.a} Ã‚Â· ${tr.al}` : tr.a;
   r.querySelector("em").textContent = tr.d ? mmss(tr.d) : "";
   r.addEventListener("click", () => playTrack(tr, true));
   return r;
@@ -445,7 +445,7 @@ function openNp(on) {
 el("npClose").addEventListener("click", () => openNp(false));
 el("npBtn").addEventListener("click", () => openNp(!document.body.classList.contains("np-open")));
 
-/* ---------- × ×™×•×•×˜ ---------- */
+/* ---------- Ã—Â Ã—â„¢Ã—â€¢Ã—â€¢Ã—Ëœ ---------- */
 function route() {
   const h = (location.hash || "#/home").split("?")[0];
   const [, name, arg] = h.split("/");
@@ -469,7 +469,7 @@ window.addEventListener("hashchange", () => { if (matchMedia("(max-width: 900px)
 el("back").addEventListener("click", () => window.history.back());
 el("fwd").addEventListener("click", () => window.history.forward());
 
-/* ---------- ×ž× ×•×¢×™ × ×™×’×•×Ÿ ---------- */
+/* ---------- Ã—Å¾Ã—Â Ã—â€¢Ã—Â¢Ã—â„¢ Ã—Â Ã—â„¢Ã—â€™Ã—â€¢Ã—Å¸ ---------- */
 function playTrack(tr, start) {
   if (!tr) return;
   if (!autoSwitch) { triedUids = new Set(); triedKey = ""; altPlan = null; }
@@ -484,7 +484,7 @@ function playTrack(tr, start) {
   miniCover.src = tr.art;
   npTitle.textContent = tr.t;
   npArtist.textContent = tr.a;
-  playingNow.textContent = `×ž× ×’×Ÿ: ${tr.t} â€” ${tr.a}`;
+  playingNow.textContent = `Ã—Å¾Ã—Â Ã—â€™Ã—Å¸: ${tr.t} Ã¢â‚¬â€ ${tr.a}`;
   totTime.textContent = tr.d ? mmss(tr.d) : "0:00";
   fill.style.width = "0%";
   setPlaying(start);
@@ -506,7 +506,7 @@ function playYt(tr, start) {
     stage.innerHTML = '<div class="frame"><div id="ytPlayer"></div></div>';
     yt = null;
   }  loadYt(tr.vid, start);
-  /* ×‘×“×™×§×” ×ž×§×“×™×ž×”: ×× ×”×™×•×¦×¨ ×—×¡× ×”×˜×ž×¢×” â€” ×ž×—×œ×™×¤×™× ×ž×§×•×¨ ×œ×¤× ×™ ×©×”×©×’×™××” ×§×•×¤×¦×ª */
+  /* Ã—â€˜Ã—â€œÃ—â„¢Ã—Â§Ã—â€ Ã—Å¾Ã—Â§Ã—â€œÃ—â„¢Ã—Å¾Ã—â€: Ã—ÂÃ—Â Ã—â€Ã—â„¢Ã—â€¢Ã—Â¦Ã—Â¨ Ã—â€”Ã—Â¡Ã—Â Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã¢â‚¬â€ Ã—Å¾Ã—â€”Ã—Å“Ã—â„¢Ã—Â¤Ã—â„¢Ã—Â Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨ Ã—Å“Ã—Â¤Ã—Â Ã—â„¢ Ã—Â©Ã—â€Ã—Â©Ã—â€™Ã—â„¢Ã—ÂÃ—â€ Ã—Â§Ã—â€¢Ã—Â¤Ã—Â¦Ã—Âª */
   if (tr.vid && typeof ytEmbedStatus === "function") {
     const uid = tr.uid;
     ytEmbedStatus([tr.vid])
@@ -529,9 +529,9 @@ function playAudio(tr, start) {
     <div class="audcard">
       <img alt="" src="${h(tr.art)}">
       <div class="audmeta">
-        <p class="audkind">${tr.full ? "×”×–×¨×ž×” ×ž×œ××”" : "×ª×§×“×™×Ÿ"}${tr.genre ? " Â· " + tr.genre : ""}</p>
+        <p class="audkind">${tr.full ? "Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—Å¾Ã—Å“Ã—ÂÃ—â€" : "Ã—ÂªÃ—Â§Ã—â€œÃ—â„¢Ã—Å¸"}${tr.genre ? " Ã‚Â· " + tr.genre : ""}</p>
         <h3></h3><p></p>
-        <span class="audtag ok">×©×™×¨ ×ž×œ× Â· ×”×–×¨×ž×” ×™×©×™×¨×”</span>
+        <span class="audtag ok">Ã—Â©Ã—â„¢Ã—Â¨ Ã—Å¾Ã—Å“Ã—Â Ã‚Â· Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—â„¢Ã—Â©Ã—â„¢Ã—Â¨Ã—â€</span>
       </div>
       <span class="audspin" id="audSpin"></span>
     </div>`;
@@ -555,7 +555,7 @@ function audioFail(tr, e) {
   spin(false);
   setPlaying(false);
   stage.classList.add("note");
-  stage.innerHTML = `<p class="notice">×”×”×–×¨×ž×” ×œ× ×¢×‘×“×” â€” ×™×™×ª×›×Ÿ ×©×”×©×™×¨ ×”×•×¡×¨ ××• ×©×”×“×¤×“×¤×Ÿ ×—×¡× ××ª ×”×”×©×ž×¢×” ×”×¢×¦×ž×™×ª. × ×¡×• ×œ×œ×—×•×¥ ×¢×œ ×”×©×™×¨ ×©×•×‘.
+  stage.innerHTML = `<p class="notice">Ã—â€Ã—â€Ã—â€“Ã—Â¨Ã—Å¾Ã—â€ Ã—Å“Ã—Â Ã—Â¢Ã—â€˜Ã—â€œÃ—â€ Ã¢â‚¬â€ Ã—â„¢Ã—â„¢Ã—ÂªÃ—â€ºÃ—Å¸ Ã—Â©Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€Ã—â€¢Ã—Â¡Ã—Â¨ Ã—ÂÃ—â€¢ Ã—Â©Ã—â€Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Å¸ Ã—â€”Ã—Â¡Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—â€Ã—Â©Ã—Å¾Ã—Â¢Ã—â€ Ã—â€Ã—Â¢Ã—Â¦Ã—Å¾Ã—â„¢Ã—Âª. Ã—Â Ã—Â¡Ã—â€¢ Ã—Å“Ã—Å“Ã—â€”Ã—â€¢Ã—Â¥ Ã—Â¢Ã—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—Â©Ã—â€¢Ã—â€˜.
     </p>`;
 }
 
@@ -594,7 +594,7 @@ function syncLike() {
 function setPlaying(on) {
   playing = on;
   document.body.classList.toggle("is-playing", on);
-  toggle.setAttribute("aria-label", on ? "×”×©×”×”" : "×”×¤×¢×œ");
+  toggle.setAttribute("aria-label", on ? "Ã—â€Ã—Â©Ã—â€Ã—â€" : "Ã—â€Ã—Â¤Ã—Â¢Ã—Å“");
 }
 
 function loadYt(id, auto) {
@@ -631,7 +631,7 @@ function preloadYtApi() {
 }
 preloadYtApi();
 
-/* ×©×ª×™ ×”×›×ª×•×‘×•×ª ×”×¨×©×ž×™×•×ª ×©×œ ×”× ×’×Ÿ. nocookie ×œ× ×ª×œ×•×™×” ×‘×¢×•×’×™×•×ª ×¦×“-×©×œ×™×©×™, ×•×œ×›×Ÿ ×”×™× ×”×¨××©×•× ×”. */
+/* Ã—Â©Ã—ÂªÃ—â„¢ Ã—â€Ã—â€ºÃ—ÂªÃ—â€¢Ã—â€˜Ã—â€¢Ã—Âª Ã—â€Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢Ã—â€¢Ã—Âª Ã—Â©Ã—Å“ Ã—â€Ã—Â Ã—â€™Ã—Å¸. nocookie Ã—Å“Ã—Â Ã—ÂªÃ—Å“Ã—â€¢Ã—â„¢Ã—â€ Ã—â€˜Ã—Â¢Ã—â€¢Ã—â€™Ã—â„¢Ã—â€¢Ã—Âª Ã—Â¦Ã—â€œ-Ã—Â©Ã—Å“Ã—â„¢Ã—Â©Ã—â„¢, Ã—â€¢Ã—Å“Ã—â€ºÃ—Å¸ Ã—â€Ã—â„¢Ã—Â Ã—â€Ã—Â¨Ã—ÂÃ—Â©Ã—â€¢Ã—Â Ã—â€. */
 const YT_HOSTS = ["https://www.youtube-nocookie.com", "https://www.youtube.com"];
 let hostIdx = 0, hostFlip = false;
 
@@ -639,19 +639,21 @@ function startApi() {
   if (!(window.YT && YT.Player) || !el("ytPlayer")) return;
   if (yt && yt.loadVideoById) {
     if (!wantAuto) { stopVerify(); return yt.cueVideoById(want); }
-    try { yt.unMute(); yt.setVolume(volume); yt.loadVideoById(want); } catch (e) {}
+    try { if (isTouch) yt.mute(); yt.setVolume(volume); yt.loadVideoById(want); } catch (e) {}
+    if (isTouch) setTimeout(() => { try { yt.unMute(); yt.setVolume(volume); } catch (e) {} }, 800);
     return verify();
   }
   yt = new YT.Player("ytPlayer", {
     videoId: want,
     host: YT_HOSTS[hostIdx],
-    playerVars: { playsinline: 1, rel: 0, autoplay: wantAuto ? 1 : 0, origin: location.origin },
+    playerVars: { playsinline: 1, rel: 0, autoplay: wantAuto ? 1 : 0, mute: isTouch ? 1 : 0, origin: location.origin },
     events: {
       onReady: (e) => {
         e.target.setVolume(volume);
         if (!wantAuto) return;
-        try { e.target.unMute(); e.target.playVideo(); } catch (err) {}
+        try { if (isTouch) e.target.mute(); e.target.playVideo(); } catch (err) {}
         verify();
+        if (isTouch) setTimeout(() => { try { e.target.unMute(); e.target.setVolume(volume); } catch (err) {} }, 800);
       },
       onStateChange: onYtState,
       onError: (e) => onYtError(e.data)
@@ -659,7 +661,7 @@ function startApi() {
   });
 }
 
-/* ×“×¤×“×¤× ×™× ×©×•× ×¢×™× ×ž×•×•×ª×¨×™× ×¢×œ ×‘×§×©×ª × ×’×™× ×” ×©×œ× ×‘××” ×ž×”×ž×©×ª×ž×© â€” ×ž×•×•×“××™× ×©×”××ž×ª ×”×ª×—×™×œ×” */
+/* Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Â Ã—â„¢Ã—Â Ã—Â©Ã—â€¢Ã—Â Ã—Â¢Ã—â„¢Ã—Â Ã—Å¾Ã—â€¢Ã—â€¢Ã—ÂªÃ—Â¨Ã—â„¢Ã—Â Ã—Â¢Ã—Å“ Ã—â€˜Ã—Â§Ã—Â©Ã—Âª Ã—Â Ã—â€™Ã—â„¢Ã—Â Ã—â€ Ã—Â©Ã—Å“Ã—Â Ã—â€˜Ã—ÂÃ—â€ Ã—Å¾Ã—â€Ã—Å¾Ã—Â©Ã—ÂªÃ—Å¾Ã—Â© Ã¢â‚¬â€ Ã—Å¾Ã—â€¢Ã—â€¢Ã—â€œÃ—ÂÃ—â„¢Ã—Â Ã—Â©Ã—â€Ã—ÂÃ—Å¾Ã—Âª Ã—â€Ã—ÂªÃ—â€”Ã—â„¢Ã—Å“Ã—â€ */
 function verify() {
   stopVerify();
   nudge = 0;
@@ -685,16 +687,16 @@ function freshPlayer(id) {
   startApi();
 }
 
-/* ×‘×¨×™×¨×ª ×ž×—×“×œ ×›×©×”-API ×—×¡×•× (×—×•×¡× ×¤×¨×¡×•×ž×•×ª, ×¨×©×ª ××¨×’×•× ×™×ª) â€” ×¢×“×™×™×Ÿ ×”×˜×ž×¢×” ×¨×©×ž×™×ª */
+/* Ã—â€˜Ã—Â¨Ã—â„¢Ã—Â¨Ã—Âª Ã—Å¾Ã—â€”Ã—â€œÃ—Å“ Ã—â€ºÃ—Â©Ã—â€-API Ã—â€”Ã—Â¡Ã—â€¢Ã—Â (Ã—â€”Ã—â€¢Ã—Â¡Ã—Â Ã—Â¤Ã—Â¨Ã—Â¡Ã—â€¢Ã—Å¾Ã—â€¢Ã—Âª, Ã—Â¨Ã—Â©Ã—Âª Ã—ÂÃ—Â¨Ã—â€™Ã—â€¢Ã—Â Ã—â„¢Ã—Âª) Ã¢â‚¬â€ Ã—Â¢Ã—â€œÃ—â„¢Ã—â„¢Ã—Å¸ Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢Ã—Âª */
 function plainEmbed() {
   if (!want || (window.YT && YT.Player)) return;
   stopVerify();
   stage.classList.remove("note");
-  stage.innerHTML = `<div class="frame"><iframe title="× ×’×Ÿ" frameborder="0"
+  stage.innerHTML = `<div class="frame"><iframe title="Ã—Â Ã—â€™Ã—Å¸" frameborder="0"
     src="${YT_HOSTS[hostIdx]}/embed/${want}?autoplay=${wantAuto ? 1 : 0}&rel=0&playsinline=1"
     allow="autoplay; encrypted-media; picture-in-picture; fullscreen"></iframe></div>
-    <p class="notice">×”×“×¤×“×¤×Ÿ ×—×¡× ××ª ×”×”×©×ž×¢×” ×”×¢×¦×ž×™×ª. ×œ×—×™×¦×” ×¢×œ ×›×¤×ª×•×¨ ×”× ×’×™× ×” ×‘×©×•×¨×” ×©×ž×ª×—×ª ×ª×ª×—×™×œ ××•×ª×”.
-      <a href="https://www.youtube.com/watch?v=${want}" target="_blank" rel="noopener">××• ×¦×¤×” ×‘×ž×§×•×¨</a></p>`;
+    <p class="notice">Ã—â€Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Å¸ Ã—â€”Ã—Â¡Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—â€Ã—Â©Ã—Å¾Ã—Â¢Ã—â€ Ã—â€Ã—Â¢Ã—Â¦Ã—Å¾Ã—â„¢Ã—Âª. Ã—Å“Ã—â€”Ã—â„¢Ã—Â¦Ã—â€ Ã—Â¢Ã—Å“ Ã—â€ºÃ—Â¤Ã—ÂªÃ—â€¢Ã—Â¨ Ã—â€Ã—Â Ã—â€™Ã—â„¢Ã—Â Ã—â€ Ã—â€˜Ã—Â©Ã—â€¢Ã—Â¨Ã—â€ Ã—Â©Ã—Å¾Ã—ÂªÃ—â€”Ã—Âª Ã—ÂªÃ—ÂªÃ—â€”Ã—â„¢Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€.
+      <a href="https://www.youtube.com/watch?v=${want}" target="_blank" rel="noopener">Ã—ÂÃ—â€¢ Ã—Â¦Ã—Â¤Ã—â€ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨</a></p>`;
   stage.classList.add("note");
   yt = null;
 }
@@ -717,8 +719,8 @@ function onYtState(e) {
 function onYtError(code) {
   stopVerify();
   const id = track ? track.vid : want;
-  /* 100/101/150/153: ×”×¡×¨×˜×•×Ÿ ×œ× × ×ž×¦× ××• ×©×”×™×•×¦×¨ ×¡×’×¨ ××ª ×”×”×˜×ž×¢×” â€”
-     × ×™×¡×™×•×Ÿ ×—×•×–×¨ ×‘××•×ª×• × ×’×Ÿ ×œ× ×™×¢×–×•×¨, ×ž×—×¤×©×™× ×¢×•×ª×§ ××—×¨ ×©×œ ×”×©×™×¨. */
+  /* 100/101/150/153: Ã—â€Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Å¸ Ã—Å“Ã—Â Ã—Â Ã—Å¾Ã—Â¦Ã—Â Ã—ÂÃ—â€¢ Ã—Â©Ã—â€Ã—â„¢Ã—â€¢Ã—Â¦Ã—Â¨ Ã—Â¡Ã—â€™Ã—Â¨ Ã—ÂÃ—Âª Ã—â€Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã¢â‚¬â€
+     Ã—Â Ã—â„¢Ã—Â¡Ã—â„¢Ã—â€¢Ã—Å¸ Ã—â€”Ã—â€¢Ã—â€“Ã—Â¨ Ã—â€˜Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â Ã—â€™Ã—Å¸ Ã—Å“Ã—Â Ã—â„¢Ã—Â¢Ã—â€“Ã—â€¢Ã—Â¨, Ã—Å¾Ã—â€”Ã—Â¤Ã—Â©Ã—â„¢Ã—Â Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨. */
   const blocked = code === 100 || code === 101 || code === 150 || code === 153;
   if (!blocked && !hostFlip && YT_HOSTS[hostIdx + 1]) {
     hostFlip = true;
@@ -733,8 +735,8 @@ function onYtError(code) {
   note(id, code);
 }
 
-/* ×× ×™×© ×‘×ª×•×¦××•×ª ×›×‘×¨ ×¢×•×ª×§ ××—×¨ ×©×œ ××•×ª×• ×©×™×¨ â€” ×œ× ×’×Ÿ ××•×ª×• ×‘×ž×§×•× ×œ×”×™×ª×§×¢.
-   ×¨×§ ×ž×ª×•×š playQueue: ×—×™×¤×•×© ×—×“×© ×¢×•×œ×” 100 ×™×—×™×“×•×ª ×ž×›×¡×”. */
+/* Ã—ÂÃ—Â Ã—â„¢Ã—Â© Ã—â€˜Ã—ÂªÃ—â€¢Ã—Â¦Ã—ÂÃ—â€¢Ã—Âª Ã—â€ºÃ—â€˜Ã—Â¨ Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â©Ã—â„¢Ã—Â¨ Ã¢â‚¬â€ Ã—Å“Ã—Â Ã—â€™Ã—Å¸ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â Ã—Å“Ã—â€Ã—â„¢Ã—ÂªÃ—Â§Ã—Â¢.
+   Ã—Â¨Ã—Â§ Ã—Å¾Ã—ÂªÃ—â€¢Ã—Å¡ playQueue: Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â€”Ã—â€œÃ—Â© Ã—Â¢Ã—â€¢Ã—Å“Ã—â€ 100 Ã—â„¢Ã—â€”Ã—â„¢Ã—â€œÃ—â€¢Ã—Âª Ã—Å¾Ã—â€ºÃ—Â¡Ã—â€. */
 function altSource() {
   if (!track) return false;
   const k = normKey(track.t, track.a);
@@ -748,18 +750,18 @@ function altSource() {
   return true;
 }
 
-/* ---------- ×ž×§×•×¨ ×—×œ×•×¤×™ ×›×©×”×¡×¨×˜×•×Ÿ ×—×¡×•× ×œ×”×˜×ž×¢×” ----------
-   ×’× ×§×˜×œ×•×’ ×•×’× ×—×™×¤×•×© ×™×•×˜×™×•×‘ ×ž×›×™×œ×™× ×¡×¨×˜×•× ×™× ×©×”×™×•×¦×¨ ×¡×’×¨ ×œ×”×˜×ž×¢×” (×§×•×“ 150).
-   ×‘×ž×§×•× ×œ×”×™×ª×§×¢, ×ž×—×¤×©×™× ×¢×•×ª×§ ××—×¨ ×©×œ ××•×ª×• ×©×™×¨ â€” ×™×•×˜×™×•×‘, ×•×× ××™×Ÿ â€” ××•×“×™×• ×ž-Audius. */
+/* ---------- Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨ Ã—â€”Ã—Å“Ã—â€¢Ã—Â¤Ã—â„¢ Ã—â€ºÃ—Â©Ã—â€Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Å¸ Ã—â€”Ã—Â¡Ã—â€¢Ã—Â Ã—Å“Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ ----------
+   Ã—â€™Ã—Â Ã—Â§Ã—ËœÃ—Å“Ã—â€¢Ã—â€™ Ã—â€¢Ã—â€™Ã—Â Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â„¢Ã—â€¢Ã—ËœÃ—â„¢Ã—â€¢Ã—â€˜ Ã—Å¾Ã—â€ºÃ—â„¢Ã—Å“Ã—â„¢Ã—Â Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Â Ã—â„¢Ã—Â Ã—Â©Ã—â€Ã—â„¢Ã—â€¢Ã—Â¦Ã—Â¨ Ã—Â¡Ã—â€™Ã—Â¨ Ã—Å“Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ (Ã—Â§Ã—â€¢Ã—â€œ 150).
+   Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â Ã—Å“Ã—â€Ã—â„¢Ã—ÂªÃ—Â§Ã—Â¢, Ã—Å¾Ã—â€”Ã—Â¤Ã—Â©Ã—â„¢Ã—Â Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â©Ã—â„¢Ã—Â¨ Ã¢â‚¬â€ Ã—â„¢Ã—â€¢Ã—ËœÃ—â„¢Ã—â€¢Ã—â€˜, Ã—â€¢Ã—ÂÃ—Â Ã—ÂÃ—â„¢Ã—Å¸ Ã¢â‚¬â€ Ã—ÂÃ—â€¢Ã—â€œÃ—â„¢Ã—â€¢ Ã—Å¾-Audius. */
 let altPlan = null, altBusy = false;
 let skipBudget = 0, lastSkipAt = 0;
 const altQueryCache = new Map();
 
-/* ×ž×™×œ×•×ª ×§×™×©×•×¨ ×•×ž×™×œ×•×ª ×¨×¢×© ×ž×›×•×ª×¨×•×ª ×™×•×˜×™×•×‘ â€” ×œ× ×ž×©×¤×™×¢×•×ª ×¢×œ ×–×”×•×ª ×”×©×™×¨ */
+/* Ã—Å¾Ã—â„¢Ã—Å“Ã—â€¢Ã—Âª Ã—Â§Ã—â„¢Ã—Â©Ã—â€¢Ã—Â¨ Ã—â€¢Ã—Å¾Ã—â„¢Ã—Å“Ã—â€¢Ã—Âª Ã—Â¨Ã—Â¢Ã—Â© Ã—Å¾Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—â€¢Ã—Âª Ã—â„¢Ã—â€¢Ã—ËœÃ—â„¢Ã—â€¢Ã—â€˜ Ã¢â‚¬â€ Ã—Å“Ã—Â Ã—Å¾Ã—Â©Ã—Â¤Ã—â„¢Ã—Â¢Ã—â€¢Ã—Âª Ã—Â¢Ã—Å“ Ã—â€“Ã—â€Ã—â€¢Ã—Âª Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ */
 const NOISE_WORDS = new Set([
   "official", "video", "lyric", "lyrics", "audio", "hd", "hq", "mv", "feat", "ft", "prod",
   "live", "remaster", "remastered", "version", "cover", "remix", "instrumental", "acoustic", "music",
-  "×§×œ×™×¤", "×ž×™×œ×™×", "×¨×©×ž×™", "×”×•×¤×¢×”", "×œ×™×™×‘", "××•×“×™×•", "×’×¨×¡×”", "×§××‘×¨", "×¨×ž×™×§×¡", "××™× ×¡×˜×¨×•×ž× ×˜×œ", "××§×•×¡×˜×™", "×ž×§×•×¨×™",
+  "Ã—Â§Ã—Å“Ã—â„¢Ã—Â¤", "Ã—Å¾Ã—â„¢Ã—Å“Ã—â„¢Ã—Â", "Ã—Â¨Ã—Â©Ã—Å¾Ã—â„¢", "Ã—â€Ã—â€¢Ã—Â¤Ã—Â¢Ã—â€", "Ã—Å“Ã—â„¢Ã—â„¢Ã—â€˜", "Ã—ÂÃ—â€¢Ã—â€œÃ—â„¢Ã—â€¢", "Ã—â€™Ã—Â¨Ã—Â¡Ã—â€", "Ã—Â§Ã—ÂÃ—â€˜Ã—Â¨", "Ã—Â¨Ã—Å¾Ã—â„¢Ã—Â§Ã—Â¡", "Ã—ÂÃ—â„¢Ã—Â Ã—Â¡Ã—ËœÃ—Â¨Ã—â€¢Ã—Å¾Ã—Â Ã—ËœÃ—Å“", "Ã—ÂÃ—Â§Ã—â€¢Ã—Â¡Ã—ËœÃ—â„¢", "Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨Ã—â„¢",
 ]);
 
 const titleWords = (v) =>
@@ -767,8 +769,8 @@ const titleWords = (v) =>
     .split(" ")
     .filter((w) => w.length > 1 && !NOISE_WORDS.has(w) && !/^(19|20)\d{2}$/.test(w));
 
-/* ××•×ª×” ×›×•×ª×¨×ª? ×ž×©×•×•×™× ××ª ×©× ×”×©×™×¨ ×¢×¦×ž×• (×‘×œ×™ ×©× ×”××ž×Ÿ ×•×‘×œ×™ ×ž×™×œ×•×ª ×¨×¢×©).
-   ×”×ª××ž×” ×—×œ×§×™×ª ×”×™×™×ª×” ×ž× ×’× ×ª ×©×™×¨ ××—×¨ ×©×œ ××•×ª×• ××ž×Ÿ â€” ×œ×›×Ÿ ×”×¡×£ ×’×‘×•×”. */
+/* Ã—ÂÃ—â€¢Ã—ÂªÃ—â€ Ã—â€ºÃ—â€¢Ã—ÂªÃ—Â¨Ã—Âª? Ã—Å¾Ã—Â©Ã—â€¢Ã—â€¢Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—Â©Ã—Â Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—Â¢Ã—Â¦Ã—Å¾Ã—â€¢ (Ã—â€˜Ã—Å“Ã—â„¢ Ã—Â©Ã—Â Ã—â€Ã—ÂÃ—Å¾Ã—Å¸ Ã—â€¢Ã—â€˜Ã—Å“Ã—â„¢ Ã—Å¾Ã—â„¢Ã—Å“Ã—â€¢Ã—Âª Ã—Â¨Ã—Â¢Ã—Â©).
+   Ã—â€Ã—ÂªÃ—ÂÃ—Å¾Ã—â€ Ã—â€”Ã—Å“Ã—Â§Ã—â„¢Ã—Âª Ã—â€Ã—â„¢Ã—â„¢Ã—ÂªÃ—â€ Ã—Å¾Ã—Â Ã—â€™Ã—Â Ã—Âª Ã—Â©Ã—â„¢Ã—Â¨ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—ÂÃ—Å¾Ã—Å¸ Ã¢â‚¬â€ Ã—Å“Ã—â€ºÃ—Å¸ Ã—â€Ã—Â¡Ã—Â£ Ã—â€™Ã—â€˜Ã—â€¢Ã—â€. */
 function sameSong(a, b, artist) {
   const drop = new Set(titleWords(artist || ""));
   const A = titleWords(a).filter((w) => !drop.has(w));
@@ -782,7 +784,7 @@ function sameSong(a, b, artist) {
   return hits / A.length >= (A.length <= 2 ? 1 : 0.7);
 }
 
-/* ×›×œ ×‘×§×©×” ×ž×•×’×‘×œ×ª ×‘×–×ž×Ÿ: ×—×™×¤×•×© ××™×˜×™ ××• ×ª×§×•×¢ ×œ× ×ž×©××™×¨ ××ª ×”× ×’×Ÿ ×¢×œ "×ž×—×¤×©×™×â€¦" */
+/* Ã—â€ºÃ—Å“ Ã—â€˜Ã—Â§Ã—Â©Ã—â€ Ã—Å¾Ã—â€¢Ã—â€™Ã—â€˜Ã—Å“Ã—Âª Ã—â€˜Ã—â€“Ã—Å¾Ã—Å¸: Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—ÂÃ—â„¢Ã—ËœÃ—â„¢ Ã—ÂÃ—â€¢ Ã—ÂªÃ—Â§Ã—â€¢Ã—Â¢ Ã—Å“Ã—Â Ã—Å¾Ã—Â©Ã—ÂÃ—â„¢Ã—Â¨ Ã—ÂÃ—Âª Ã—â€Ã—Â Ã—â€™Ã—Å¸ Ã—Â¢Ã—Å“ "Ã—Å¾Ã—â€”Ã—Â¤Ã—Â©Ã—â„¢Ã—ÂÃ¢â‚¬Â¦" */
 const withTimeout = (p, ms, fallback) =>
   Promise.race([p, new Promise((res) => setTimeout(() => res(fallback), ms))]);
 
@@ -809,14 +811,14 @@ async function altCandidates(tr) {
     return items;
   };
 
-  /* ×§×•×“× ×”×—×™×¤×•×© ×”×ž×¡×•× ×Ÿ (×¨×§ ×¡×¨×˜×•× ×™× ×©×ž××¤×©×¨×™× ×”×˜×ž×¢×”), ×•×¨×§ ×× ××™×Ÿ â€” ×—×™×¤×•×© ×’×•×œ×ž×™ */
+  /* Ã—Â§Ã—â€¢Ã—â€œÃ—Â Ã—â€Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â€Ã—Å¾Ã—Â¡Ã—â€¢Ã—Â Ã—Å¸ (Ã—Â¨Ã—Â§ Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Â Ã—â„¢Ã—Â Ã—Â©Ã—Å¾Ã—ÂÃ—Â¤Ã—Â©Ã—Â¨Ã—â„¢Ã—Â Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€), Ã—â€¢Ã—Â¨Ã—Â§ Ã—ÂÃ—Â Ã—ÂÃ—â„¢Ã—Å¸ Ã¢â‚¬â€ Ã—â€”Ã—â„¢Ã—Â¤Ã—â€¢Ã—Â© Ã—â€™Ã—â€¢Ã—Å“Ã—Å¾Ã—â„¢ */
   for (const q of queries) {
     collect(await fetchQuery(q, false));
     if (matches.length) break;
   }
   if (!matches.length && queries[0]) collect(await fetchQuery(queries[0], true));
 
-  /* ×ž×¡× × ×™× ××ª ×ž×™ ×©×™×“×•×¢ ×©×—×¡×•× ×•×ž×¢×“×™×¤×™× ×ž×™ ×©× ×‘×“×§ ×•×ž××¤×©×¨ ×”×˜×ž×¢×” */
+  /* Ã—Å¾Ã—Â¡Ã—Â Ã—Â Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—Å¾Ã—â„¢ Ã—Â©Ã—â„¢Ã—â€œÃ—â€¢Ã—Â¢ Ã—Â©Ã—â€”Ã—Â¡Ã—â€¢Ã—Â Ã—â€¢Ã—Å¾Ã—Â¢Ã—â€œÃ—â„¢Ã—Â¤Ã—â„¢Ã—Â Ã—Å¾Ã—â„¢ Ã—Â©Ã—Â Ã—â€˜Ã—â€œÃ—Â§ Ã—â€¢Ã—Å¾Ã—ÂÃ—Â¤Ã—Â©Ã—Â¨ Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ */
   let status = new Map();
   try { status = await withTimeout(ytEmbedStatus(matches.map((t) => t.vid)), 3500, new Map()); } catch (e) {}
   const verified = matches.filter((t) => status.get(t.vid) === true);
@@ -832,7 +834,7 @@ async function altCandidates(tr) {
   return out;
 }
 
-/* ×ž× ×’×Ÿ ××ª ×”×ž×•×¢×ž×“ ×”×‘× ×œ×©×™×¨; ×× ××–×œ×• â€” ×ž×¦×™×’×™× ××ª ×”×•×“×¢×ª ×”×©×’×™××” */
+/* Ã—Å¾Ã—Â Ã—â€™Ã—Å¸ Ã—ÂÃ—Âª Ã—â€Ã—Å¾Ã—â€¢Ã—Â¢Ã—Å¾Ã—â€œ Ã—â€Ã—â€˜Ã—Â Ã—Å“Ã—Â©Ã—â„¢Ã—Â¨; Ã—ÂÃ—Â Ã—ÂÃ—â€“Ã—Å“Ã—â€¢ Ã¢â‚¬â€ Ã—Å¾Ã—Â¦Ã—â„¢Ã—â€™Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—â€¢Ã—â€œÃ—Â¢Ã—Âª Ã—â€Ã—Â©Ã—â€™Ã—â„¢Ã—ÂÃ—â€ */
 async function tryOtherSource(tr, code) {
   if (altBusy) return;
   altBusy = true;
@@ -840,14 +842,14 @@ async function tryOtherSource(tr, code) {
   try {
     if (!altPlan) {
       stage.classList.add("note");
-      stage.innerHTML = '<p class="notice">×ž×—×œ×™×¤×™× ×œ×¢×•×ª×§ ××—×¨ ×©×œ ××•×ª×• ×©×™×¨â€¦</p>';
+      stage.innerHTML = '<p class="notice">Ã—Å¾Ã—â€”Ã—Å“Ã—â„¢Ã—Â¤Ã—â„¢Ã—Â Ã—Å“Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—ÂÃ—â€”Ã—Â¨ Ã—Â©Ã—Å“ Ã—ÂÃ—â€¢Ã—ÂªÃ—â€¢ Ã—Â©Ã—â„¢Ã—Â¨Ã¢â‚¬Â¦</p>';
       const list = await altCandidates(tr);
       altPlan = { list, index: 0 };
     }
     const next = altPlan.list[altPlan.index++];
     if (!next) {
       altPlan = null;
-      /* ××™×Ÿ ×¢×•×ª×§ ×¢×•×‘×“ â€” ×œ× ×¢×•×¦×¨×™× ××ª ×”×ž×•×–×™×§×”: ×ž×“×œ×’×™× ×œ×©×™×¨ ×”×‘× */
+      /* Ã—ÂÃ—â„¢Ã—Å¸ Ã—Â¢Ã—â€¢Ã—ÂªÃ—Â§ Ã—Â¢Ã—â€¢Ã—â€˜Ã—â€œ Ã¢â‚¬â€ Ã—Å“Ã—Â Ã—Â¢Ã—â€¢Ã—Â¦Ã—Â¨Ã—â„¢Ã—Â Ã—ÂÃ—Âª Ã—â€Ã—Å¾Ã—â€¢Ã—â€“Ã—â„¢Ã—Â§Ã—â€: Ã—Å¾Ã—â€œÃ—Å“Ã—â€™Ã—â„¢Ã—Â Ã—Å“Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€Ã—â€˜Ã—Â */
       if (Date.now() - lastSkipAt > 20000) skipBudget = 6;
       if (skipBudget > 0) {
         skipBudget--;
@@ -886,9 +888,9 @@ function note(id, code) {
   setPlaying(false);
   engine = null;
   const why = location.protocol === "file:"
-    ? "×”×§×•×‘×¥ × ×¤×ª×— ×™×©×™×¨×•×ª ×ž×”×ª×™×§×™×™×” ×•×”× ×’×Ÿ ×œ× ×¢×•×‘×“ ×›×›×”. ×¤×ª×— ××ª start.bat â€” ×–×” ×ž×¤×¢×™×œ ×©×¨×ª ×ž×§×•×ž×™ ×•××– ×™×© ×¦×œ×™×œ."
-    : `×”×©×™×¨×•×ª ×¡×™×¨×‘ ×œ× ×’×Ÿ ××ª ×”×•×•×™×“××• ×”×–×” (×§×•×“ ${code}) â€” ×™×™×ª×›×Ÿ ×©×”×”×˜×ž×¢×” ×‘×¡×¨×˜×•×Ÿ ×”×–×” × ×¡×’×¨×”.
-       <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">××• ×¦×¤×” ×‘×ž×§×•×¨</a>`;
+    ? "Ã—â€Ã—Â§Ã—â€¢Ã—â€˜Ã—Â¥ Ã—Â Ã—Â¤Ã—ÂªÃ—â€” Ã—â„¢Ã—Â©Ã—â„¢Ã—Â¨Ã—â€¢Ã—Âª Ã—Å¾Ã—â€Ã—ÂªÃ—â„¢Ã—Â§Ã—â„¢Ã—â„¢Ã—â€ Ã—â€¢Ã—â€Ã—Â Ã—â€™Ã—Å¸ Ã—Å“Ã—Â Ã—Â¢Ã—â€¢Ã—â€˜Ã—â€œ Ã—â€ºÃ—â€ºÃ—â€. Ã—Â¤Ã—ÂªÃ—â€” Ã—ÂÃ—Âª start.bat Ã¢â‚¬â€ Ã—â€“Ã—â€ Ã—Å¾Ã—Â¤Ã—Â¢Ã—â„¢Ã—Å“ Ã—Â©Ã—Â¨Ã—Âª Ã—Å¾Ã—Â§Ã—â€¢Ã—Å¾Ã—â„¢ Ã—â€¢Ã—ÂÃ—â€“ Ã—â„¢Ã—Â© Ã—Â¦Ã—Å“Ã—â„¢Ã—Å“."
+    : `Ã—â€Ã—Â©Ã—â„¢Ã—Â¨Ã—â€¢Ã—Âª Ã—Â¡Ã—â„¢Ã—Â¨Ã—â€˜ Ã—Å“Ã—Â Ã—â€™Ã—Å¸ Ã—ÂÃ—Âª Ã—â€Ã—â€¢Ã—â€¢Ã—â„¢Ã—â€œÃ—ÂÃ—â€¢ Ã—â€Ã—â€“Ã—â€ (Ã—Â§Ã—â€¢Ã—â€œ ${code}) Ã¢â‚¬â€ Ã—â„¢Ã—â„¢Ã—ÂªÃ—â€ºÃ—Å¸ Ã—Â©Ã—â€Ã—â€Ã—ËœÃ—Å¾Ã—Â¢Ã—â€ Ã—â€˜Ã—Â¡Ã—Â¨Ã—ËœÃ—â€¢Ã—Å¸ Ã—â€Ã—â€“Ã—â€ Ã—Â Ã—Â¡Ã—â€™Ã—Â¨Ã—â€.
+       <a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Ã—ÂÃ—â€¢ Ã—Â¦Ã—Â¤Ã—â€ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨</a>`;
   stage.innerHTML = `<p class="notice">${why}</p>`;
   stage.classList.add("note");
 }
@@ -897,8 +899,8 @@ function stalled() {
   const id = track ? track.vid : want;
   setPlaying(false);
   engine = null;
-  stage.innerHTML = `<p class="notice">×”×“×¤×“×¤×Ÿ ×—×¡× ××ª ×ª×—×™×œ×ª ×”× ×’×™× ×”. ×œ×—×™×¦×” × ×•×¡×¤×ª ×¢×œ ×”×©×™×¨ ×‘×“×¨×š ×›×œ×œ ×¤×•×ª×—×ª ××•×ª×”.
-    ${id ? `<a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">××• ×¦×¤×” ×‘×ž×§×•×¨</a>` : ""}</p>`;
+  stage.innerHTML = `<p class="notice">Ã—â€Ã—â€œÃ—Â¤Ã—â€œÃ—Â¤Ã—Å¸ Ã—â€”Ã—Â¡Ã—Â Ã—ÂÃ—Âª Ã—ÂªÃ—â€”Ã—â„¢Ã—Å“Ã—Âª Ã—â€Ã—Â Ã—â€™Ã—â„¢Ã—Â Ã—â€. Ã—Å“Ã—â€”Ã—â„¢Ã—Â¦Ã—â€ Ã—Â Ã—â€¢Ã—Â¡Ã—Â¤Ã—Âª Ã—Â¢Ã—Å“ Ã—â€Ã—Â©Ã—â„¢Ã—Â¨ Ã—â€˜Ã—â€œÃ—Â¨Ã—Å¡ Ã—â€ºÃ—Å“Ã—Å“ Ã—Â¤Ã—â€¢Ã—ÂªÃ—â€”Ã—Âª Ã—ÂÃ—â€¢Ã—ÂªÃ—â€.
+    ${id ? `<a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Ã—ÂÃ—â€¢ Ã—Â¦Ã—Â¤Ã—â€ Ã—â€˜Ã—Å¾Ã—Â§Ã—â€¢Ã—Â¨</a>` : ""}</p>`;
   stage.classList.add("note");
 }
 
@@ -951,7 +953,7 @@ bar.addEventListener("click", (e) => {
 
 function setVolume(e) {
   const r = volBar.getBoundingClientRect();
-  /* ×”×¨×ž×§×•×œ ×œ× ×™×•×¨×“ ×ž×ª×—×ª ×œÖ¾1 â€” ×œ×—×™×¦×” ×¢×œ ×§×¦×” ×”×¡×¨×’×œ ×œ× ×ž×©×ª×™×§×” ××ª ×”××¤×œ×™×§×¦×™×”; ×›×™×‘×•×™ ×¨×§ ×‘×›×¤×ª×•×¨ ×”×”×©×ª×§×” */
+  /* Ã—â€Ã—Â¨Ã—Å¾Ã—Â§Ã—â€¢Ã—Å“ Ã—Å“Ã—Â Ã—â„¢Ã—â€¢Ã—Â¨Ã—â€œ Ã—Å¾Ã—ÂªÃ—â€”Ã—Âª Ã—Å“Ã–Â¾1 Ã¢â‚¬â€ Ã—Å“Ã—â€”Ã—â„¢Ã—Â¦Ã—â€ Ã—Â¢Ã—Å“ Ã—Â§Ã—Â¦Ã—â€ Ã—â€Ã—Â¡Ã—Â¨Ã—â€™Ã—Å“ Ã—Å“Ã—Â Ã—Å¾Ã—Â©Ã—ÂªÃ—â„¢Ã—Â§Ã—â€ Ã—ÂÃ—Âª Ã—â€Ã—ÂÃ—Â¤Ã—Å“Ã—â„¢Ã—Â§Ã—Â¦Ã—â„¢Ã—â€; Ã—â€ºÃ—â„¢Ã—â€˜Ã—â€¢Ã—â„¢ Ã—Â¨Ã—Â§ Ã—â€˜Ã—â€ºÃ—Â¤Ã—ÂªÃ—â€¢Ã—Â¨ Ã—â€Ã—â€Ã—Â©Ã—ÂªÃ—Â§Ã—â€ */
   volume = Math.round(Math.max(1, Math.min(Math.max((r.right - e.clientX) / r.width, 0), 1) * 100));
   volFill.style.width = `${volume}%`;
   if (engine === "audio") audioEl.volume = volume / 100;
@@ -1029,7 +1031,7 @@ document.querySelectorAll(".rail-btn").forEach((a) => a.addEventListener("click"
 
 el("npLike").innerHTML = HEART;
 
-/* ---------- ×‘×§×¨×•×ª ×—×œ×•×Ÿ ---------- */
+/* ---------- Ã—â€˜Ã—Â§Ã—Â¨Ã—â€¢Ã—Âª Ã—â€”Ã—Å“Ã—â€¢Ã—Å¸ ---------- */
 winClose.addEventListener("click", () => { try { window.close(); } catch (e) {} });
 
 let full = false;

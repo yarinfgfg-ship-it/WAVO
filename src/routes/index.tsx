@@ -7,8 +7,8 @@ declare global {
   }
 }
 
-const HTML_VERSION = 45;
-const SCRIPT_VERSION = 44;
+const HTML_VERSION = 46;
+const SCRIPT_VERSION = 45;
 const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js"];
 
 export const Route = createFileRoute("/")({
@@ -26,14 +26,14 @@ export const Route = createFileRoute("/")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/style.css?v=18" },
-      { rel: "stylesheet", href: "/wavo/extras.css?v=12" },
-      { rel: "stylesheet", href: "/wavo/polish.css?v=10" },
+      { rel: "stylesheet", href: "/wavo/style.css?v=19" },
+      { rel: "stylesheet", href: "/wavo/extras.css?v=13" },
+      { rel: "stylesheet", href: "/wavo/polish.css?v=11" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/fresh.css?v=16" },
+      { rel: "stylesheet", href: "/wavo/fresh.css?v=17" },
     ],
   }),
   component: Wavo,

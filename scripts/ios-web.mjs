@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const src = path.join(root, "public");
 const out = path.join(root, "www");
 
-const VERSION = 5;
+const VERSION = 6;
 const q = (f) => `${f}?v=${VERSION}`;
 
 function replace(text, from, to, label) {
@@ -74,8 +74,8 @@ let player = fs.readFileSync(path.join(out, "wavo", "script.js"), "utf8");
 // YouTube origin makes the player drop every postMessage, so controls die.
 player = replace(
   player,
-  "playerVars: { playsinline: 1, rel: 0, autoplay: wantAuto ? 1 : 0, origin: location.origin },",
-  "playerVars: { playsinline: 1, rel: 0, autoplay: wantAuto ? 1 : 0 },",
+  "playerVars: { playsinline: 1, rel: 0, autoplay: wantAuto ? 1 : 0, mute: isTouch ? 1 : 0, origin: location.origin },",
+  "playerVars: { playsinline: 1, rel: 0, autoplay: wantAuto ? 1 : 0, mute: isTouch ? 1 : 0 },",
   "youtube origin",
 );
 fs.writeFileSync(path.join(out, "wavo", "script.js"), player);
