@@ -11,6 +11,10 @@ const config: CapacitorConfig = {
     hostname: "localhost",
     iosScheme: "capacitor",
     androidScheme: "https",
+    // Load the app shell from GitHub Pages so the WebView origin is a real https
+    // origin that YouTube accepts for embedded playback (capacitor://localhost
+    // is rejected by YouTube -> error 153). Requires network at launch.
+    url: "https://yarinfgfg-ship-it.github.io/WAVO/",
   },
   ios: {
     scheme: "App",
