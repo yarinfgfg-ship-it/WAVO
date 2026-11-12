@@ -199,3 +199,26 @@ body.is-phone .ctx button { padding: 12px 14px; font-size: 15px; }
 body.is-phone .rail-btn { min-width: 44px; min-height: 44px; }
 body.is-phone input, body.is-phone button { font-size: 16px; } /* prevents iOS zoom on focus */
 body.is-phone .search, body.is-phone .lib-search { height: 44px; }
+
+
+/* phone comfort pass 2: more breathing room, softer feel */
+body.is-phone .app { padding: 0 2px; }
+body.is-phone .row { padding: 12px 10px; gap: 12px; border-radius: 14px; }
+body.is-phone .row:hover, body.is-phone .row:active { background: rgba(255,255,255,.04); }
+body.is-phone .tile { border-radius: 16px; }
+body.is-phone .tile-art { border-radius: 16px; }
+body.is-phone .side, body.is-phone .rail { gap: 6px; }
+body.is-phone .topbar { padding: 10px 12px; }
+body.is-phone .search { height: 46px; padding: 0 16px; }
+body.is-phone .player { padding: 10px 12px; gap: 10px; }
+body.is-phone .np { padding: 14px; }
+body.is-phone .np-cover { border-radius: 12px; }
+body.is-phone .ctx { border-radius: 16px; padding: 8px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+body.is-phone .ctx button { border-radius: 10px; }
+body.is-phone .tabbar { padding: 8px 4px 10px; backdrop-filter: blur(20px); }
+body.is-phone .tabbar a span { font-size: 11px; margin-top: 2px; }
+body.is-phone .modal, body.is-phone .acct { border-radius: 20px; padding: 18px; }
+body.is-phone .toast { border-radius: 12px; padding: 10px 16px; }
+/* smooth transitions */
+body.is-phone .row, body.is-phone .tile, body.is-phone .tabbar a { transition: transform .15s ease, background .15s ease, opacity .15s ease; }
+body.is-phone .row:active, body.is-phone .tile:active { transform: scale(.98); }

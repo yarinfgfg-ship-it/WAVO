@@ -472,6 +472,7 @@ el("fwd").addEventListener("click", () => window.history.forward());
 /* ---------- מנועי ניגון ---------- */
 function playTrack(tr, start) {
   if (!tr) return;
+  if (!navigator.onLine) { try { stage.classList.add("note"); stage.innerHTML = "<p class=\"notice\">אין חיבור לאינטרנט — לא ניתן לנגן כרגע. השירים יפעלו כשתחזור לרשת.</p>"; } catch (e) {} return; }
   if (!autoSwitch) { triedUids = new Set(); triedKey = ""; }
   autoSwitch = false;
   track = tr;

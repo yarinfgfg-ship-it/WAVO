@@ -59,7 +59,7 @@ document.addEventListener("click", (e) => {
 (function () {
   const banner = document.createElement("div");
   banner.id = "offlineBanner";
-  banner.textContent = "מצב לא מקוון — только каталог и сохранённые";
+  banner.textContent = "מצב לא מקוון — ניתן לעיין בקטלוג, נגינה تتطلب אינטרנט";
   banner.style.cssText = "display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#b33;color:#fff;text-align:center;padding:6px 10px;font-size:13px;font-weight:600;";
   document.body.appendChild(banner);
   const update = () => { banner.style.display = navigator.onLine ? "none" : "block"; };
