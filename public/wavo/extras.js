@@ -600,6 +600,19 @@
     box.appendChild(add);
   }
   window.addEventListener("hashchange", () => paintRail());
+  function addToQueue(tr, next) {
+    if (!tr) return;
+    if (!Array.isArray(playQueue)) playQueue = [];
+    if (next && playQueue.length && qPos >= 0) {
+      const idx = Math.min(qPos + 1, playQueue.length);
+      // avoid duplicate adjacent
+      playQueue.splice(idx, 0, tr);
+    } else {
+      playQueue.push(tr);
+    }
+    if (qPos < 0) qPos = 0;
+    toast(next ? "נוגן הבא" : "נוסף לתור");
+  }
   let ctx = null;
   function closeCtx() { if (ctx) { ctx.remove(); ctx = null; } }
   function openCtx(x, y, tr, fromPl) {
@@ -612,6 +625,8 @@
     ctx.innerHTML = `
       <div class="ctx-head"><img alt="" src="${esc(tr.art)}"><span><b>${esc(tr.t)}</b><i>${esc(tr.a)}</i></span></div>
       <button data-a="play">נגן עכשיו</button>
+      <button data-a="next">נגן הבא</button>
+      <button data-a="queue">הוסף לתור</button>
       <button data-a="like">${liked ? "הסר מאהבתי" : "הוסף לשירים שאהבתי"}</button>
       ${tr.src === "catalog" ? `<button data-a="artist">עבור לאמן</button>` : ""}
       <div class="ctx-sep"></div>
@@ -629,6 +644,8 @@
       const a = b.dataset.a;
       closeCtx();
       if (a === "play") playTrack(tr, true);
+      else if (a === "next") addToQueue(tr, true);
+      else if (a === "queue") addToQueue(tr, false);
       else if (a === "like") like(tr);
       else if (a === "artist") location.hash = "#/artist/" + encodeURIComponent(tr.a);
       else if (a === "new") askName(`הפלייליסט שלי #${pls.length + 1}`, (n) => newPlaylist(n, tr));
