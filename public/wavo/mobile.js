@@ -53,3 +53,56 @@ document.addEventListener("click", (e) => {
   new MutationObserver(() => b.classList.toggle("on", src.classList.contains("on"))).observe(src, { attributes: true });
   now.appendChild(b);
 })();
+
+
+/* ---------- offline indicator ---------- */
+(function () {
+  const banner = document.createElement("div");
+  banner.id = "offlineBanner";
+  banner.textContent = "מצב לא מקוון — только каталог и сохранённые";
+  banner.style.cssText = "display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#b33;color:#fff;text-align:center;padding:6px 10px;font-size:13px;font-weight:600;";
+  document.body.appendChild(banner);
+  const update = () => { banner.style.display = navigator.onLine ? "none" : "block"; };
+  addEventListener("online", update);
+  addEventListener("offline", update);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", update);
+  update();
+})();
+
+/* ---------- swipe gestures on phone ---------- */
+(function () {
+  if (!matchMedia("(pointer: coarse)").matches) return;
+  let sx = 0, sy = 0, t0 = 0, target = null;
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY; t0 = Date.now();
+    target = e.target.closest && e.target.closest(".stage, .np, .view");
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!target) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    const dt = Date.now() - t0;
+    if (dt > 600 || (Math.abs(dx) < 60 && Math.abs(dy) < 60)) { target = null; return; }
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // horizontal swipe -> next/prev track
+      if (dx < 0 && typeof step === "function") { try { step(1); navigator.vibrate?.(8); } catch (e) {} }
+      else if (dx > 0 && typeof step === "function") { try { step(-1); navigator.vibrate?.(8); } catch (e) {} }
+    } else if (dy > 80) {
+      // swipe down -> close now-playing
+      const np = document.getElementById("npClose");
+      if (np) np.click();
+    }
+    target = null;
+  }, { passive: true });
+})();
+
+/* ---------- haptic feedback on tap ---------- */
+(function () {
+  if (!navigator.vibrate) return;
+  document.addEventListener("click", (e) => {
+    const host = e.target.closest && e.target.closest(".tile, .row, .tabbar a, .rail-btn, .win-btn");
+    if (host) navigator.vibrate(6);
+  }, { passive: true });
+})();

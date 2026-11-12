@@ -190,3 +190,12 @@ body.is-phone .lyrics { padding-top: calc(1rem + env(safe-area-inset-top)) !impo
 body.is-phone .player { padding-left: calc(.6rem + env(safe-area-inset-left)) !important; padding-right: calc(.6rem + env(safe-area-inset-right)) !important; }
 body.is-phone .tabbar { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 body.is-phone .view { padding-left: calc(1rem + env(safe-area-inset-left)) !important; padding-right: calc(1rem + env(safe-area-inset-right)) !important; }
+
+
+/* phone comfort: bigger tap targets + smoother feel */
+body.is-phone .row, body.is-phone .tile, body.is-phone .tabbar a, body.is-phone .icon-btn { min-height: 44px; }
+body.is-phone .tabbar a { padding: 8px 4px; }
+body.is-phone .ctx button { padding: 12px 14px; font-size: 15px; }
+body.is-phone .rail-btn { min-width: 44px; min-height: 44px; }
+body.is-phone input, body.is-phone button { font-size: 16px; } /* prevents iOS zoom on focus */
+body.is-phone .search, body.is-phone .lib-search { height: 44px; }

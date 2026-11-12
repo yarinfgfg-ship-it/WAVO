@@ -23,6 +23,7 @@ fs.mkdirSync(path.join(out, "wavo"), { recursive: true });
 fs.cpSync(path.join(src, "wavo"), path.join(out, "wavo"), { recursive: true });
 fs.copyFileSync(path.join(src, "favicon.png"), path.join(out, "favicon.png"));
 fs.cpSync(path.join(src, "icons"), path.join(out, "icons"), { recursive: true });
+if (fs.existsSync(path.join(src, "sw.js"))) fs.copyFileSync(path.join(src, "sw.js"), path.join(out, "sw.js"));
 
 /* ---------- index.html ---------- */
 let html = fs.readFileSync(path.join(src, "wavo", "app.html"), "utf8");
@@ -66,6 +67,10 @@ html = replace(
 
 html = replace(html, 'src="/favicon.png"', 'src="favicon.png"', "rail logo path");
 
+// register service worker for offline support (PWA)
+if (fs.existsSync(path.join(out, "sw.js"))) {
+  html = html.replace("</body>", '<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script></body>');
+}
 fs.writeFileSync(path.join(out, "index.html"), html);
 
 /* ---------- script.js ---------- */

@@ -51,6 +51,10 @@ function Wavo() {
     }
     window.__wavoBooted = true;
 
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+
     (async () => {
       const html = await (await fetch(`/wavo/app.html?v=${HTML_VERSION}`)).text();
       if (cancelled) return;
