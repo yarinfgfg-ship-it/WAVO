@@ -255,7 +255,7 @@ function createSplash() {
   splashWindow = new BrowserWindow({
     width: 440,
     height: 260,
-    frame: false,
+    frame: true,
     resizable: false,
     show: true,
     center: true,
@@ -314,7 +314,7 @@ function createMainWindow() {
     minWidth: 1040,
     minHeight: 660,
     show: false,
-    frame: false,
+    frame: true,
     backgroundColor: "#080b14",
     title: APP_NAME,
     icon: iconPath(),

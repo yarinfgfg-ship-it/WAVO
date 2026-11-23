@@ -45,7 +45,7 @@
     if (!lib.length) {
       box.innerHTML = `<div class="lib-empty"><p class="lib-empty-t">הספרייה שלך ריקה</p>
         <p class="lib-empty-s">לחץ על <b>＋</b> ליד אמן או שיר כדי להוסיף אותו לכאן</p>
-        <a class="lib-empty-btn" href="#/search">מצא מה לשמוע</a></div>`;
+        <a class="lib-empty-btn" href="#/home">גלה מוזיקה</a></div>`;
       return;
     }
     list.forEach((it) => {
@@ -65,6 +65,17 @@
 
   window.renderLibrary = function () {
     viewEl.innerHTML = `<h1 class="greet">הספרייה שלך</h1>`;
+    if (!lib.some((it) => it.kind === "liked")) {
+      const n = typeof window.wavoLikedCount === "function" ? window.wavoLikedCount() : 0;
+      const card = document.createElement("a");
+      card.className = "lib-liked-card";
+      card.href = "#/liked";
+      card.innerHTML = `<span class="lib-liked-art">${HEART_SOLID}</span>
+        <span class="lib-liked-copy"><b>שירים שאהבתי</b><span class="lib-liked-count"></span></span>
+        <span class="lib-liked-arrow" aria-hidden="true">‹</span>`;
+      card.querySelector(".lib-liked-count").textContent = n === 1 ? "שיר אחד" : `${n} שירים`;
+      viewEl.appendChild(card);
+    }
     if (!lib.length) {
       viewEl.insertAdjacentHTML("beforeend", `<div class="lib-empty big"><p class="lib-empty-t">עדיין לא הוספת כלום</p>
         <p class="lib-empty-s">הוסף אמנים ושירים בלחיצה על ＋ — הם יופיעו כאן ובצד</p>
@@ -149,6 +160,7 @@
     clearTimeout(toastT);
     toastT = setTimeout(() => toastEl.classList.remove("on"), 1800);
   }
+  window.toast = toast;
 
   /* ================= מילים ================= */
   const extra = document.querySelector(".player .extra");
@@ -166,12 +178,15 @@
     <header class="lyr-head"><img class="lyr-cover" alt="" /><div class="lyr-meta"><p class="lyr-t"></p><p class="lyr-a"></p></div>
     <div class="lyr-sync" hidden><button data-o="-0.5" aria-label="מילים מוקדם יותר">−</button><span class="lyr-off">סנכרון</span><button data-o="0.5" aria-label="מילים מאוחר יותר">+</button></div>
     <button class="lyr-find" aria-label="חיפוש מילים" title="מילים לא נכונות? חפש">⌕</button>
+    <button class="lyr-fs" aria-label="מסך מלא"> ( ) </button>
     <button class="lyr-close" aria-label="סגור מילים">×</button></header>
     <form class="lyr-search" hidden><input name="q" placeholder="שם השיר ושם הזמר" autocomplete="off" /><button type="submit">חפש</button></form>
     <div class="lyr-body"></div>`;
   document.body.appendChild(pane);
   const body = pane.querySelector(".lyr-body");
   const form = pane.querySelector(".lyr-search");
+  const fsBtn = pane.querySelector(".lyr-fs");
+  if (fsBtn) fsBtn.addEventListener("click", () => pane.classList.toggle("full"));
   let open = false, lines = [], plain = "", loadedFor = "", active = -1, offset = 0;
   const cache = new Map();
   const PICKS_KEY = "wavo.lyricsPicks";
@@ -203,15 +218,66 @@
     return { title, alt };
   }
 
+  /* raw cleaner for SEARCH QUERIES: same as norm() but keeps final Hebrew
+     letters (ך ם ן ף ץ). LRCLIB matches words exactly, so the folded form
+     "אביב גפנ" finds nothing while "אביב גפן" hits. Scoring still uses norm(). */
+  const qclean = (s) => String(s || "").toLowerCase()
+    .replace(/[\u0591-\u05c7]/g, "")
+    .replace(/\[[^\]]*\]|\([^)]*\)/g, " ")
+    .replace(/(official|video|clip|lyrics?|audio|visualizer|prod\.?.*|feat\.?.*|ft\.?.*|קליפ רשמי|הקליפ הרשמי|קליפ|מילים|רשמי|גרסה רשמית|vevo|- topic|topic)/g, " ")
+    .replace(/[^\u05d0-\u05eaa-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+
+  function splitQuery(t, a) {
+    const parts = String(t || "").split(/\s[-–—|]\s|\s*[|]\s*/).map(qclean).filter(Boolean);
+    const na = qclean(a);
+    if (parts.length < 2) return { title: qclean(t), artist: na, alt: "" };
+    const keep = parts.filter((p) => !(na && (p.includes(na) || na.includes(p))));
+    const title = keep[0] || parts[parts.length - 1];
+    const alt = parts.find((p) => p !== title) || "";
+    return { title, artist: na, alt };
+  }
+
+  /* strip pictographic emoji / music-note glyphs from every lyric string.
+     Applied at parse time so stored files, network results and manual picks
+     all render clean without editing hundreds of lyric files by hand. */
+  const EMOJI = /[\p{Extended_Pictographic}\uFE0F\u200D\u20E3\u{1F3FB}-\u{1F3FF}\u{1F1E6}-\u{1F1FF}\u266A\u266B]/gu;
+  const cleanLyrics = (s) => String(s || "")
+    .replace(EMOJI, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ *\n/g, "\n")
+    .trim();
+
   function parseLrc(txt) {
     const out = [];
     for (const raw of txt.split("\n")) {
       const tags = [...raw.matchAll(/\[(\d+):(\d+(?:[.:]\d+)?)\]/g)];
-      const text = raw.replace(/\[[^\]]*\]/g, "").replace(/<\d+:\d+(?:\.\d+)?>/g, "").trim();
+      const text = cleanLyrics(raw.replace(/\[[^\]]*\]/g, "").replace(/<\d+:\d+(?:\.\d+)?>/g, ""));
       for (const m of tags) out.push({ t: +m[1] * 60 + parseFloat(m[2].replace(":", ".")), text });
     }
     return out.sort((a, b) => a.t - b.t);
   }
+
+  /* lyric helpers (also used by the verification harness) */
+  window.wavoCleanLyrics = cleanLyrics;
+
+  /* plain lyrics → timed lines: give every line an estimated slot based on
+     its length, so the karaoke highlight follows playback by itself. */
+  function autoTime(plain, tr, dur) {
+    const rows = plain.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (!rows.length) return [];
+    const totalDur = dur || tr?.d || rows.length * 3.5;
+    const start = Math.min(8, totalDur * 0.08);
+    const usable = Math.max(rows.length * 1.2, totalDur - start);
+    const weights = rows.map((s) => Math.max(1, Math.min(18, s.length)));
+    const sum = weights.reduce((a, b) => a + b, 0);
+    let t = start;
+    return rows.map((text, i) => {
+      const line = { t, text };
+      t += usable * weights[i] / sum;
+      return line;
+    });
+  }
+  window.wavoAutoTimeLyrics = autoTime;
 
   const words = (s) => s.split(" ").filter((w) => w.length > 1);
   const overlap = (x, y) => { const A = words(x), B = new Set(words(y)); return A.length ? A.filter((w) => B.has(w)).length / A.length : 0; };
@@ -237,7 +303,7 @@
     return s;
   }
 
-  const toRes = (x) => ({ synced: x.syncedLyrics ? parseLrc(x.syncedLyrics) : [], plain: x.plainLyrics || "", dur: x.duration || 0, src: "LRCLIB" });
+  const toRes = (x) => ({ synced: x.syncedLyrics ? parseLrc(x.syncedLyrics) : [], plain: cleanLyrics(x.plainLyrics), dur: x.duration || 0, src: "LRCLIB" });
   const lrc = async (path, params) => { try { const r = await fetch("https://lrclib.net/api/" + path + (params ? "?" + new URLSearchParams(params) : ""), { signal: AbortSignal.timeout(7000) }); return r.ok ? await r.json() : null; } catch { return null; } };
 
   const LCACHE = "wavo.lyrCache";
@@ -250,11 +316,48 @@
     try { localStorage.setItem(LCACHE, JSON.stringify(disk)); } catch {}
   };
   const inflight = new Map();
+
+  /* base URL of this script → sibling lyrics/ folder works on localhost,
+     GitHub Pages (/WAVO/) and the iOS bundle alike */
+  const LYRICS_BASE = (() => {
+    try {
+      const s = document.currentScript || [...document.scripts].find((x) => /extras\.js/.test(x.src));
+      return s && s.src ? s.src.replace(/[^/]*$/, "lyrics/") : "/wavo/lyrics/";
+    } catch { return "/wavo/lyrics/"; }
+  })();
+  const localMiss = new Set();
+
+  /* bundled lyrics first (public/wavo/lyrics/{yt}.json), no network needed */
+  async function fetchLocal(tr) {
+    const m = /^yt:([\w-]{11})$/.exec(tr.uid || "");
+    if (!m || localMiss.has(tr.uid)) return null;
+    try {
+      const r = await fetch(LYRICS_BASE + m[1] + ".json", { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) { localMiss.add(tr.uid); return null; }
+      const j = await r.json();
+      if (!j || !(j.plain || j.synced)) { localMiss.add(tr.uid); return null; }
+      return { synced: j.synced ? parseLrc(j.synced) : [], plain: cleanLyrics(j.plain), dur: j.d || 0, src: j.src || "LRCLIB", local: true };
+    } catch { return null; }
+  }
+
   async function fetchLyrics(tr) {
     if (cache.has(tr.uid)) return cache.get(tr.uid);
-    if (disk[tr.uid]) { cache.set(tr.uid, disk[tr.uid]); return disk[tr.uid]; }
     if (inflight.has(tr.uid)) return inflight.get(tr.uid);
-    const job = fetchLyricsNet(tr).then((r) => { inflight.delete(tr.uid); toDisk(tr.uid, r); return r; });
+    const job = (async () => {
+      let r = picks[tr.uid] ? await fetchLyricsNet(tr) : null; // a manual pick wins over everything
+      if (!r) {
+        const loc = await fetchLocal(tr); // bundled file first — no network needed
+        const dsk = disk[tr.uid] || null; // old localStorage entry (may be plain-only)
+        const has = (x) => !!(x && x.synced && x.synced.length);
+        // prefer whichever actually has synced lines; tie goes to the bundled file
+        r = loc && dsk ? (has(loc) || !has(dsk) ? loc : dsk) : loc || dsk;
+      }
+      if (!r) r = await fetchLyricsNet(tr);
+      inflight.delete(tr.uid);
+      if (r && !r.local) toDisk(tr.uid, r); // bundled files are always there — don't burn localStorage
+      if (r) cache.set(tr.uid, r);
+      return r;
+    })();
     inflight.set(tr.uid, job);
     return job;
   }
@@ -264,18 +367,19 @@
       const x = await lrc("get/" + pick);
       if (x) { const r = toRes(x); cache.set(tr.uid, r); return r; }
     }
-    const { title: t, alt } = splitTitle(tr.t, tr.a);
+    const { title: t, alt } = splitTitle(tr.t, tr.a); // normalized — scoring
+    const q = splitQuery(tr.t, tr.a); // raw (final letters intact) — queries
     const a = norm(tr.a), artists = [a, alt].filter(Boolean);
     let best = null, bestScore = -1;
     const consider = (list) => { for (const x of list || []) { const s = score(x, t, artists, tr.d); if (s > bestScore) { bestScore = s; best = x; } } };
     const tries = [
-      { track_name: t, artist_name: a },
-      alt && { track_name: t, artist_name: alt },
-      { q: `${t} ${a}` },
-      alt && { q: `${t} ${alt}` },
-      { track_name: t },
-      t !== norm(tr.t) && { q: norm(tr.t) },
-      alt && { track_name: alt, artist_name: t }, // title/artist were the other way round
+      { track_name: q.title, artist_name: q.artist },
+      q.alt && { track_name: q.title, artist_name: q.alt },
+      { q: `${q.title} ${q.artist}`.trim() },
+      q.alt && { q: `${q.title} ${q.alt}` },
+      { track_name: q.title },
+      q.title !== t && { q: t },
+      q.alt && { track_name: q.alt, artist_name: q.title }, // title/artist were the other way round
     ].filter(Boolean);
     /* all searches at once instead of one after another */
     const [first, ...rest] = tries;
@@ -284,11 +388,11 @@
     let res = best && bestScore >= 5 ? toRes(best) : null;
     /* second source for plain lyrics */
     if (!res) {
-      for (const ar of [tr.a, alt].filter(Boolean)) {
+      for (const ar of [...new Set([tr.a, q.alt].filter(Boolean))]) {
         try {
-          const r = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(ar)}/${encodeURIComponent(t)}`, { signal: AbortSignal.timeout(6000) });
+          const r = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(ar)}/${encodeURIComponent(q.title)}`, { signal: AbortSignal.timeout(6000) });
           const j = r.ok ? await r.json() : null;
-          if (j?.lyrics?.trim()) { res = { synced: [], plain: j.lyrics.trim(), dur: 0, src: "lyrics.ovh" }; break; }
+          if (j?.lyrics?.trim()) { res = { synced: [], plain: cleanLyrics(j.lyrics), dur: 0, src: "lyrics.ovh" }; break; }
         } catch {}
       }
     }
@@ -321,8 +425,8 @@
     loadedFor = tr ? tr.uid : "";
     active = -1;
     form.hidden = true;
-    pane.querySelector(".lyr-t").textContent = tr ? tr.t : "מילים";
-    pane.querySelector(".lyr-a").textContent = tr ? tr.a : "";
+    pane.querySelector(".lyr-t").textContent = tr ? cleanLyrics(tr.t) : "מילים";
+    pane.querySelector(".lyr-a").textContent = tr ? cleanLyrics(tr.a) : "";
     const cover = pane.querySelector(".lyr-cover");
     cover.hidden = !tr?.art;
     if (tr?.art) { cover.src = tr.art; pane.style.setProperty("--lyr-art", `url("${tr.art}")`); }
@@ -334,20 +438,24 @@
   }
 
   function show(res, tr) {
-    lines = res?.synced?.length ? buildLines(res.synced, res.dur) : [];
+    plain = cleanLyrics(res?.plain);
+    const totalDur = tr?.d || res?.dur || 0;
+    const synced = (res?.synced || []).map((l) => ({ ...l, text: cleanLyrics(l.text) }));
+    lines = synced.length ? buildLines(synced, res.dur) : [];
+    /* no timed data? estimate timings from the text so it still follows the song */
+    if (!lines.length && plain) lines = buildLines(autoTime(plain, tr, res?.dur), totalDur);
     active = -1;
     offset = 0;
     /* video longer than the recording = usually an intro before the song starts */
     if (lines.length && tr.d && res.dur && tr.d - res.dur > 6 && tr.d - res.dur < 60) offset = Math.round((tr.d - res.dur) * 0.5);
     if (typeof offs[tr.uid] === "number") offset = offs[tr.uid];
     paintOffset();
-    plain = res?.plain || "";
     if (lines.length) renderSynced(res.src);
     else if (plain) {
       body.innerHTML = `<p class="lyr-badge">המילים לא מסונכרנות לשיר הזה</p>` +
         plain.split("\n").map((l) => `<p class="lyr-line plain" dir="${isRtl(l) ? "rtl" : "ltr"}">${esc(l) || "&nbsp;"}</p>`).join("") + `<p class="lyr-src">מילים: ${esc(res.src)}</p>`;
     } else {
-      body.innerHTML = `<div class="lyr-empty"><p class="lyr-msg">לא מצאנו מילים לשיר הזה 🎵</p><button class="lyr-empty-btn" type="button">חפש מילים בעצמך</button></div>`;
+      body.innerHTML = `<div class="lyr-empty"><p class="lyr-msg">לא מצאנו מילים לשיר הזה</p><button class="lyr-empty-btn" type="button">חפש מילים בעצמך</button></div>`;
     }
     body.classList.toggle("is-synced", !!lines.length);
     body.scrollTop = 0;
@@ -376,7 +484,7 @@
     if (!list.length) { body.innerHTML = `<p class="lyr-msg">אין תוצאות. נסה לכתוב אחרת</p>`; return; }
     body.innerHTML = `<div class="lyr-results">` + list.map((x) => {
       const m = Math.floor((x.duration || 0) / 60), s = String(Math.round((x.duration || 0) % 60)).padStart(2, "0");
-      return `<button type="button" class="lyr-res" data-id="${x.id}"><b>${esc(x.trackName)}</b><span>${esc(x.artistName)}${x.duration ? " · " + m + ":" + s : ""}</span>${x.syncedLyrics ? `<i>מסונכרן</i>` : ""}</button>`;
+      return `<button type="button" class="lyr-res" data-id="${x.id}"><b>${esc(cleanLyrics(x.trackName))}</b><span>${esc(cleanLyrics(x.artistName))}${x.duration ? " · " + m + ":" + s : ""}</span>${x.syncedLyrics ? `<i>מסונכרן</i>` : ""}</button>`;
     }).join("") + `</div>`;
     body.querySelectorAll(".lyr-res").forEach((b) => b.addEventListener("click", () => {
       const x = list.find((y) => String(y.id) === b.dataset.id);
@@ -461,12 +569,25 @@
   }
 
   let lastCheck = 0;
+  let lastPlainScroll = -1;
   function tick() {
     requestAnimationFrame(tick);
     if (!open) return;
     const n = performance.now();
-    if (n - lastCheck > 400) { lastCheck = n; if ((track?.uid || "") !== loadedFor) return loadFor(track); }
-    if (!lines.length || !body.classList.contains("is-synced")) return;
+    if (n - lastCheck > 400) { lastCheck = n; if ((track?.uid || "") !== loadedFor) { lastPlainScroll = -1; return loadFor(track); } }
+    if (!lines.length || !body.classList.contains("is-synced")) {
+      /* plain (unsynced) lyrics: glide through the text with playback progress */
+      if (plain && playing && Date.now() > userScrollUntil) {
+        const dur = track?.d || 0;
+        const p = dur > 0 ? Math.min(1, Math.max(0, clock() / dur)) : 0;
+        const step = Math.round(p * 100); // 1% granularity so it only scrolls on change
+        if (step !== lastPlainScroll) {
+          lastPlainScroll = step;
+          body.scrollTo({ top: p * (body.scrollHeight - body.clientHeight), behavior: "smooth" });
+        }
+      }
+      return;
+    }
     const now = clock() + 0.15 - offset;
     let i = -1;
     for (let k = 0; k < lines.length; k++) { if (lines[k].t <= now) i = k; else break; }
@@ -603,15 +724,13 @@
   function addToQueue(tr, next) {
     if (!tr) return;
     if (!Array.isArray(playQueue)) playQueue = [];
-    if (next && playQueue.length && qPos >= 0) {
-      const idx = Math.min(qPos + 1, playQueue.length);
-      // avoid duplicate adjacent
-      playQueue.splice(idx, 0, tr);
+    if (next && playQueue.length && (typeof qPos !== "undefined") && qPos >= 0) {
+      playQueue.splice(qPos + 1, 0, tr);
     } else {
       playQueue.push(tr);
     }
-    if (qPos < 0) qPos = 0;
-    toast(next ? "נוגן הבא" : "נוסף לתור");
+    if ((typeof qPos === "undefined" || qPos < 0) && playQueue.length) qPos = playQueue.indexOf(tr);
+    toast(next ? "נגן הבא" : "הוסף לתור");
   }
   let ctx = null;
   function closeCtx() { if (ctx) { ctx.remove(); ctx = null; } }
@@ -764,3 +883,228 @@
     requestAnimationFrame(step);
   }, { passive: false });
 })();
+
+
+/* ================= הגדרות ================= */
+(function () {
+  const KEY = "wavo.settings";
+  const defaults = { theme: "dark", accent: "#ff5e1a", compact: false, speed: 1, lyricsSize: 16, sleep: 0, autoPlay: true, crossfade: true, lyricsBtn: true, startView: "home", favoriteArtists: [], tasteChosen: false };
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+      // migrate the old default accent so existing profiles keep the WAVO orange
+      if (saved.accent && String(saved.accent).toLowerCase() === "#ff8a3d") saved.accent = defaults.accent;
+      return Object.assign({}, defaults, saved);
+    } catch { return { ...defaults }; }
+  }
+  function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  let S = load();
+
+  function applyTheme() {
+    document.body.classList.toggle("theme-light", S.theme === "light");
+    document.body.classList.toggle("theme-dark", S.theme !== "light");
+  }
+  function applyAccent() {
+    document.documentElement.style.setProperty("--a1", S.accent);
+  }
+  function applyCompact() {
+    document.body.classList.toggle("compact", !!S.compact);
+  }
+  function applyAll() { applyTheme(); applyAccent(); applyCompact(); }
+
+  /* favorite artists: single source of truth for onboarding + recommendations */
+  window.wavoFavorites = () => (Array.isArray(S.favoriteArtists) ? S.favoriteArtists.slice() : []);
+  window.wavoOnboarded = () => !!S.tasteChosen;
+  window.wavoSetFavoriteArtists = (arr) => {
+    const allowed = (typeof topArtists !== "undefined" && Array.isArray(topArtists) && topArtists.length)
+      ? topArtists
+      : (typeof artists !== "undefined" && Array.isArray(artists) ? artists : []);
+    const clean = [...new Set((Array.isArray(arr) ? arr : [])
+      .map((x) => String(x || "").trim())
+      .filter((x) => allowed.includes(x)))];
+    S.favoriteArtists = clean;
+    S.tasteChosen = true;
+    save(S);
+    if (typeof window.route === "function") window.route();
+    return clean;
+  };
+
+  /* playback toggles live here so script.js and the UI share one source of truth */
+  window.wavoAutoPlay = () => S.autoPlay !== false;
+  window.wavoSmoothTransition = () => S.crossfade !== false;
+  window.wavoSetSpeed = (r) => { S.speed = Number(r) || 1; save(S); };
+
+  /* reset account: forget the name, taste and personal library, then replay
+     the whole welcome (name → 3+ artists → white-ball reveal). */
+  window.wavoResetAccount = () => {
+    const keys = ["wavo.name", "wavo.history", "wavo.likes", "wavo.saved", "wavo.mylib",
+      "wavo.lyrCache", "wavo.lyricsPicks", "wavo-lyr-offsets", "wavo.embed",
+      "yarin.history", "yarin.likes"];
+    keys.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+    S = Object.assign({}, defaults, { favoriteArtists: [], tasteChosen: false });
+    save(S);
+    applyAll();
+    if (typeof setSpeed === "function") setSpeed(S.speed);
+    setSleep(0);
+    document.documentElement.style.setProperty("--lyrics-size", S.lyricsSize + "px");
+    if (typeof window.wavoResetUserData === "function") window.wavoResetUserData();
+    const modal = document.getElementById("settingsModal");
+    if (modal) modal.remove();
+    if (typeof window.wavoRestartOnboarding === "function") window.wavoRestartOnboarding();
+    else location.reload();
+  };
+
+  let sleepTimer = null;
+  function setSleep(mins) {
+    S.sleep = mins; save(S);
+    if (sleepTimer) { clearTimeout(sleepTimer); sleepTimer = null; }
+    if (mins > 0) {
+      sleepTimer = setTimeout(() => {
+        try { if (typeof audioEl !== "undefined") audioEl.pause(); if (typeof yt !== "undefined" && yt && yt.pauseVideo) yt.pauseVideo(); } catch (e) {}
+        toast("טיימר שינה — נגינה הופסקה");
+      }, mins * 60 * 1000);
+    }
+  }
+
+  function openSettings() {
+    window.openSettings = openSettings;
+    const now = Date.now();
+    const old = document.getElementById("settingsModal");
+    if (old) {
+      // multiple handlers fire on one click (inline onclick + capture delegation + wireGear);
+      // ignore re-opens from the same click, allow real toggle on a later click
+      if (now - (window.__wavoSetOpenAt || 0) < 600) return;
+      old.remove(); return;
+    }
+    window.__wavoSetOpenAt = now;
+    const m = document.createElement("div");
+    m.id = "settingsModal";
+    m.className = "modal on";
+    m.innerHTML = `
+      <div class="modal-card">
+        <header class="modal-head"><h2>הגדרות</h2><button class="modal-close" aria-label="סגור">×</button></header>
+        <div class="settings-body">
+          <div class="set-row"><span>ערכת נושא</span>
+            <div class="set-seg"><button data-theme="dark" class="${S.theme==='dark'?'on':''}">כהה</button><button data-theme="light" class="${S.theme==='light'?'on':''}">בהיר</button></div></div>
+          <div class="set-row"><span>צבע הדגשה</span>
+            <input type="color" id="setAccent" value="${S.accent}"></div>
+          <div class="set-row"><span>תצוגה צפופה</span>
+            <label class="set-switch"><input type="checkbox" id="setCompact" ${S.compact?'checked':''}><span></span></label></div>
+          <div class="set-row"><span>מהירות נגינה</span>
+            <select id="setSpeed">
+              <option value="0.75" ${S.speed==0.75?'selected':''}>0.75×</option>
+              <option value="1" ${S.speed==1?'selected':''}>1×</option>
+              <option value="1.25" ${S.speed==1.25?'selected':''}>1.25×</option>
+              <option value="1.5" ${S.speed==1.5?'selected':''}>1.5×</option>
+            </select></div>
+          <div class="set-row"><span>גודל מילים</span>
+            <input type="range" id="setLyrics" min="12" max="28" value="${S.lyricsSize}"><span id="setLyricsVal">${S.lyricsSize}</span></div>
+          <div class="set-row"><span>טיימר שינה</span>
+            <select id="setSleep">
+              <option value="0" ${S.sleep==0?'selected':''}>כבוי</option>
+              <option value="15" ${S.sleep==15?'selected':''}>15 דק׳</option>
+              <option value="30" ${S.sleep==30?'selected':''}>30 דק׳</option>
+              <option value="45" ${S.sleep==45?'selected':''}>45 דק׳</option>
+              <option value="60" ${S.sleep==60?'selected':''}>60 דק׳</option>
+            </select></div>
+          <div class="set-row"><span>נגינה אוטומטית</span>
+            <label class="set-switch"><input type="checkbox" id="setAutoPlay" ${S.autoPlay!==false?'checked':''}><span></span></label></div>
+          <div class="set-row"><span>מעבר חלק בין שירים</span>
+            <label class="set-switch"><input type="checkbox" id="setCrossfade" ${S.crossfade!==false?'checked':''}><span></span></label></div>
+          <div class="set-row"><span>הצג כפתור מילים</span>
+            <label class="set-switch"><input type="checkbox" id="setLyricsBtn" ${S.lyricsBtn!==false?'checked':''}><span></span></label></div>
+          <div class="set-row"><span>תצוגת התחלה</span>
+            <select id="setStartView">
+              <option value="home" ${S.startView==='home'?'selected':''}>בית</option>
+              <option value="liked" ${S.startView==='liked'?'selected':''}>שירים שאהבתי</option>
+              <option value="library" ${S.startView==='library'?'selected':''}>הספרייה</option>
+            </select></div>
+          <div class="set-row"><span>איפוס חשבון</span><button id="setResetAccount" class="lib-add danger">התחל מחדש</button></div>
+          <div class="set-row"><span>האמנים המועדפים שלי</span><button id="setFavorites" class="lib-add">בחר אמנים</button></div>
+          <div class="set-row"><button id="setClearHistory" class="lib-add">נקה היסטוריה</button></div>
+          <div class="set-row"><button id="setClearCache" class="lib-add">נקה מטמון</button></div>
+          <div class="set-row"><button id="setReset" class="lib-add">אפס הגדרות</button></div>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    m.querySelector(".modal-close").onclick = () => m.remove();
+    m.addEventListener("click", (e) => { if (e.target === m) m.remove(); });
+
+    m.querySelectorAll("[data-theme]").forEach((b) => {
+      b.onclick = () => {
+        S.theme = b.dataset.theme; save(S); applyTheme();
+        m.querySelectorAll("[data-theme]").forEach((x) => x.classList.toggle("on", x.dataset.theme === S.theme));
+      };
+    });
+    m.querySelector("#setAccent").oninput = (e) => { S.accent = e.target.value; save(S); applyAccent(); };
+    m.querySelector("#setCompact").onchange = (e) => { S.compact = e.target.checked; save(S); applyCompact(); };
+    m.querySelector("#setSpeed").onchange = (e) => { S.speed = +e.target.value; save(S); if (typeof setSpeed === "function") setSpeed(S.speed); };
+    const lr = m.querySelector("#setLyrics");
+    lr.oninput = (e) => { S.lyricsSize = +e.target.value; save(S); m.querySelector("#setLyricsVal").textContent = S.lyricsSize; document.documentElement.style.setProperty("--lyrics-size", S.lyricsSize + "px"); };
+    m.querySelector("#setSleep").onchange = (e) => { setSleep(+e.target.value); };
+    m.querySelector("#setAutoPlay").onchange = (e) => { S.autoPlay = e.target.checked; save(S); };
+    m.querySelector("#setCrossfade").onchange = (e) => { S.crossfade = e.target.checked; save(S); };
+    m.querySelector("#setLyricsBtn").onchange = (e) => { S.lyricsBtn = e.target.checked; save(S); const lb = document.getElementById("lyrBtn"); if (lb) lb.style.display = S.lyricsBtn ? "" : "none"; const lp = document.getElementById("lyrBtnPhone"); if (lp) lp.style.display = S.lyricsBtn ? "" : "none"; };
+    m.querySelector("#setStartView").onchange = (e) => { S.startView = e.target.value; save(S); };
+    const resetAccountBtn = m.querySelector("#setResetAccount");
+    if (resetAccountBtn) resetAccountBtn.onclick = () => {
+      if (!confirm("איפוס חשבון ימחק את השם, ההעדפות והספרייה במכשיר הזה. להמשיך?")) return;
+      if (typeof window.wavoResetAccount === "function") window.wavoResetAccount();
+    };
+    const favBtn = m.querySelector("#setFavorites");
+    if (favBtn) {
+      const n = (S.favoriteArtists || []).length;
+      favBtn.textContent = n ? `שנה (${n})` : "בחר אמנים";
+      favBtn.onclick = () => { m.remove(); if (typeof window.wavoChooseFavorites === "function") window.wavoChooseFavorites(); };
+    }
+    m.querySelector("#setClearHistory").onclick = () => {
+      try { localStorage.removeItem("wavo.history"); } catch {}
+      if (typeof window.wavoClearHistory === "function") window.wavoClearHistory();
+      else if (typeof history !== "undefined") history = [];
+      toast("ההיסטוריה נוקתה");
+    };
+    m.querySelector("#setClearCache").onclick = async () => { try { if ("caches" in window) { const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))); } toast("המטמון נוקה"); } catch (e) { toast("לא ניתן לנקות"); } };
+    m.querySelector("#setReset").onclick = () => {
+      S = { ...defaults }; save(S); applyAll();
+      if (typeof setSpeed === "function") setSpeed(S.speed);
+      document.documentElement.style.setProperty("--lyrics-size", S.lyricsSize + "px");
+      setSleep(0);
+      m.remove();
+      toast("ההגדרות אופסו");
+    };
+    document.documentElement.style.setProperty("--lyrics-size", S.lyricsSize + "px");
+  }
+
+  // apply on load
+  applyAll();
+  document.documentElement.style.setProperty("--lyrics-size", S.lyricsSize + "px");
+  if (S.lyricsBtn === false) { const lb = document.getElementById("lyrBtn"); if (lb) lb.style.display = "none"; const lp = document.getElementById("lyrBtnPhone"); if (lp) lp.style.display = "none"; }
+  if (S.speed && typeof setSpeed === "function") setTimeout(() => setSpeed(S.speed), 500);
+  if (S.sleep) setSleep(S.sleep);
+  if (S.startView && S.startView !== "home") setTimeout(() => { location.hash = "#/" + S.startView; }, 120);
+
+  // wire gear button
+  function wireGear() {
+    window.openSettings = openSettings; // export at load (same scope as openSettings)
+    const btn = document.getElementById("settingsBtn");
+    if (!btn) return setTimeout(wireGear, 300);
+    btn.addEventListener("click", (e) => { e.stopPropagation(); openSettings(); });
+  }
+  wireGear();
+})();
+
+/* settings button: capture-phase delegation (works for SVG children too) */
+function isSettingsTarget(el) {
+  let n = el;
+  while (n && n !== document) {
+    if (n.id === "settingsBtn" || n.id === "settingsBtnPhone") return true;
+    n = n.parentNode;
+  }
+  return false;
+}
+document.addEventListener("click", (e) => {
+  if (!isSettingsTarget(e.target)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (typeof window.openSettings === "function") window.openSettings();
+}, true);

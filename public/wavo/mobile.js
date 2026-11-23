@@ -8,11 +8,12 @@
   const apply = () => document.body.classList.toggle("is-phone", isPhone());
   apply();
   addEventListener("resize", apply);
+  addEventListener("orientationchange", () => setTimeout(apply, 120));
 
   if (document.querySelector(".tabbar")) return;
   const icon = {
     home: '<path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10.5V20h12v-9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-    search: '<circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    liked: '<path d="M12 20.3 5.2 13.9C3.3 12.1 2.6 10.2 2.9 8.4 3.3 6 5.4 4.3 7.9 4.6c1.7.2 3.2 1.2 4.1 2.7.9-1.5 2.4-2.5 4.1-2.7 2.5-.3 4.6 1.4 5 3.8.3 1.8-.4 3.7-2.3 5.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
     library: '<path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   };
   const nav = document.createElement("nav");
@@ -20,12 +21,9 @@
   nav.setAttribute("aria-label", "ניווט");
   nav.innerHTML = `
     <a href="#/home" data-tab="home"><svg viewBox="0 0 24 24">${icon.home}</svg><span>בית</span></a>
-    <a href="#/search" data-tab="search"><svg viewBox="0 0 24 24">${icon.search}</svg><span>חיפוש</span></a>
-    <a href="#/library" data-tab="library"><svg viewBox="0 0 24 24">${icon.library}</svg><span>הספרייה</span></a>`;
+    <a href="#/library" data-tab="library"><svg viewBox="0 0 24 24">${icon.library}</svg><span>הספרייה</span></a>
+    <a href="#/liked" data-tab="liked"><svg viewBox="0 0 24 24">${icon.liked}</svg><span>אהבתי</span></a>`;
   document.body.appendChild(nav);
-
-  nav.querySelector('[data-tab="search"]').addEventListener("click", () =>
-    setTimeout(() => document.getElementById("search")?.focus(), 60));
 
   const mark = () => {
     const h = (location.hash || "#/home").split("/")[1] || "home";
@@ -40,10 +38,10 @@ document.addEventListener("click", (e) => {
   if (e.target.closest(".player .now") && !e.target.closest("button")) document.getElementById("npBtn")?.click();
 });
 /* phone: lyrics button inside the mini player */
-(function addPhoneLyrics() {
+(function addPhoneLyrics(tries = 0) {
   const src = document.getElementById("lyrBtn");
   const now = document.querySelector(".player .now");
-  if (!src || !now) return setTimeout(addPhoneLyrics, 300);
+  if (!src || !now) return tries < 20 ? setTimeout(() => addPhoneLyrics(tries + 1), 300) : undefined;
   if (document.getElementById("lyrBtnPhone")) return;
   const b = document.createElement("button");
   b.id = "lyrBtnPhone"; b.className = "icon-btn sm phone-lyr";
@@ -59,8 +57,8 @@ document.addEventListener("click", (e) => {
 (function () {
   const banner = document.createElement("div");
   banner.id = "offlineBanner";
-  banner.textContent = "מצב לא מקוון — ניתן לעיין בקטלוג, נגינה تتطلب אינטרנט";
-  banner.style.cssText = "display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#b33;color:#fff;text-align:center;padding:6px 10px;font-size:13px;font-weight:600;";
+  banner.textContent = "מצב לא מקוון — אפשר לעיין בקטלוג, נגינה דורשת אינטרנט";
+  banner.style.cssText = "display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#8a2f20;color:#fff;text-align:center;padding:calc(6px + env(safe-area-inset-top)) 12px 6px;font-size:13px;font-weight:600;pointer-events:none;";
   document.body.appendChild(banner);
   const update = () => { banner.style.display = navigator.onLine ? "none" : "block"; };
   addEventListener("online", update);
@@ -81,6 +79,7 @@ document.addEventListener("click", (e) => {
   }, { passive: true });
   document.addEventListener("touchend", (e) => {
     if (!target) return;
+    if (target.closest("input, textarea, #bar, .ctx, .modal")) { target = null; return; }
     const t = e.changedTouches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
     const dt = Date.now() - t0;
@@ -89,7 +88,7 @@ document.addEventListener("click", (e) => {
       // horizontal swipe -> next/prev track
       if (dx < 0 && typeof step === "function") { try { step(1); navigator.vibrate?.(8); } catch (e) {} }
       else if (dx > 0 && typeof step === "function") { try { step(-1); navigator.vibrate?.(8); } catch (e) {} }
-    } else if (dy > 80) {
+    } else if (dy > 80 && target.classList.contains("np")) {
       // swipe down -> close now-playing
       const np = document.getElementById("npClose");
       if (np) np.click();
@@ -105,4 +104,21 @@ document.addEventListener("click", (e) => {
     const host = e.target.closest && e.target.closest(".tile, .row, .tabbar a, .rail-btn, .win-btn");
     if (host) navigator.vibrate(6);
   }, { passive: true });
+})();
+
+
+/* ---------- settings button on phone topbar ---------- */
+(function addPhoneSettings(tries = 0) {
+  if (!document.body.classList.contains('is-phone') || tries >= 40) return;
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return setTimeout(() => addPhoneSettings(tries + 1), 300);
+  if (document.getElementById("settingsBtnPhone")) return;
+  const b = document.createElement("button");
+  b.id = "settingsBtnPhone"; b.className = "icon-btn sm phone-settings";
+  b.setAttribute("aria-label", "הגדרות");
+  b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+  b.addEventListener("click", (e) => { e.stopPropagation(); if (typeof window.openSettings === "function") window.openSettings(); });
+  // insert before win-controls or at end of topbar
+  const anchor = topbar.querySelector(".playing-now") || topbar.lastElementChild;
+  topbar.insertBefore(b, anchor);
 })();

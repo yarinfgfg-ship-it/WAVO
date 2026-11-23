@@ -21,7 +21,7 @@ const artistList = (a) => songs.map((s, i) => i).filter((i) => songs[i].a === a)
 const topArtists = artists.slice().sort((x, y) => artistCount(y) - artistCount(x));
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const localTrack = (i) => {
   const s = songs[i];
   return { uid: "yt:" + s.yt, src: "catalog", i, t: s.t, a: s.a, al: "", d: s.d, art: thumb(s.yt), vid: s.yt, link: "https://www.youtube.com/watch?v=" + s.yt, full: true };
@@ -35,10 +35,16 @@ if (!likes.size) load("yarin.likes", []).forEach((id) => likes.add("yt:" + id));
 let savedTracks = {};
 try { savedTracks = JSON.parse(localStorage.getItem("wavo.saved") || "{}"); } catch { savedTracks = {}; }
 const likedTracks = () => [...likes].map((uid) => history.find((t) => t.uid === uid) || savedTracks[uid] || (byId[uid.slice(3)] != null ? localTrack(byId[uid.slice(3)]) : null)).filter(Boolean);
+const favoriteArtists = () => {
+  if (typeof window.wavoFavorites === "function") return window.wavoFavorites();
+  const s = load("wavo.settings", {});
+  return Array.isArray(s && s.favoriteArtists) ? s.favoriteArtists.slice() : [];
+};
 
 let track = null, current = -1, playing = false, elapsed = 0, volume = 70;
 let shuffle = false, repeat = false, yt = null, engine = null;
 let want = null, wantAuto = false, apiTried = false, retried = false, nudge = 0, nudgeTimer = 0;
+let speed = 1; let wakeLock = null;
 const isTouch = (typeof window !== "undefined" && (('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0));
 let playedOnce = false;
 let playQueue = [], qPos = -1;
@@ -54,8 +60,11 @@ const songsWord = (n) => (n === 1 ? "שיר אחד" : `${n} שירים`);
 const duration = () => (engine === "audio" ? audioEl.duration || track?.d || 0 : (yt && yt.getDuration ? yt.getDuration() : track?.d) || 0);
 const nowOf = () => (engine === "audio" ? audioEl.currentTime : (yt && yt.getCurrentTime ? yt.getCurrentTime() : elapsed));
 const greeting = () => {
-  const h = new Date().getHours();
-  return h < 5 ? "לילה טוב" : h < 12 ? "בוקר טוב" : h < 17 ? "צהריים טובים" : h < 21 ? "ערב טוב" : "לילה טוב";
+  const hour = new Date().getHours();
+  const base = hour < 5 ? "לילה טוב" : hour < 12 ? "בוקר טוב" : hour < 17 ? "צהריים טובים" : hour < 21 ? "ערב טוב" : "לילה טוב";
+  let name = "";
+  try { name = String(JSON.parse(localStorage.getItem("wavo.name") || '""') || "").trim(); } catch {}
+  return name ? `${base}, ${h(name)}` : base;
 };
 
 miniCover.src = thumb(songs[0].yt);
@@ -214,18 +223,40 @@ function artistCard(a) {
 }
 
 /* ---------- תצוגות ---------- */
-function recommended(n) {
+/* אמנים מועדפים > שירים אהובים > היסטוריית האזנה > שיר דומה (אותו אמן / שכנים בהיסטוריה) */
+function recommended(n, opts = {}) {
   const seed = {};
-  history.forEach((t) => { if (t && t.a) seed[t.a] = (seed[t.a] || 0) + 2; });
-  if (!Object.keys(seed).length) topArtists.slice(0, 6).forEach((a) => (seed[a] = 1));
-  const seen = new Set(history.map((t) => t.uid));
-  const fresh = songs.map((s, i) => i).filter((i) => !seen.has("yt:" + songs[i].yt));
-  const related = fresh
-    .filter((i) => seed[songs[i].a])
-    .map((i) => ({ i, w: seed[songs[i].a] * 100 + Math.random() * 100 }))
-    .sort((x, y) => y.w - x.w)
-    .map((p) => p.i);
-  return related.concat(fresh.filter((i) => !seed[songs[i].a])).slice(0, n).map(localTrack);
+  const add = (a, w) => { if (a) seed[a] = (seed[a] || 0) + w; };
+  favoriteArtists().forEach((a) => add(a, 16));
+  likedTracks().forEach((t) => add(t && t.a, 9));
+  history.slice(0, 16).forEach((t) => add(t && t.a, 4));
+  if (opts.artist) add(opts.artist, 7);
+  if (!Object.keys(seed).length) topArtists.slice(0, 6).forEach((a) => add(a, 1));
+
+  /* artists the listener moves between are treated as "same type" */
+  const neighbors = {};
+  for (let i = 0; i + 1 < history.length; i++) {
+    const a = history[i] && history[i].a, b = history[i + 1] && history[i + 1].a;
+    if (!a || !b || a === b) continue;
+    if (!neighbors[a]) neighbors[a] = new Set();
+    if (!neighbors[b]) neighbors[b] = new Set();
+    neighbors[a].add(b);
+    neighbors[b].add(a);
+  }
+  Object.keys(seed).forEach((a) => { (neighbors[a] || []).forEach((b) => add(b, 2)); });
+
+  const seen = new Set(history.map((t) => t && t.uid));
+  const avoid = new Set(opts.excludeUid ? [opts.excludeUid] : []);
+  return songs.map((s, i) => ({ i, uid: "yt:" + s.yt }))
+    .filter((x) => !avoid.has(x.uid))
+    .map((x) => {
+      let w = (seed[songs[x.i].a] || 0) * 100 + Math.random() * 70;
+      if (seen.has(x.uid)) w -= 260;
+      return { i: x.i, w };
+    })
+    .sort((a, b) => b.w - a.w)
+    .slice(0, Math.max(0, n))
+    .map((x) => localTrack(x.i));
 }
 
 function renderHome() {
@@ -239,11 +270,20 @@ function renderHome() {
     cont.appendChild(row);
   }
 
-  const rec = section("מומלץ בשבילך", history.length ? "לפי מה ששמעת" : "לחץ על שיר כדי להתחיל");
+  const fav = favoriteArtists();
+  const rec = section("מומלץ בשבילך", fav.length ? "לפי האמנים שבחרת ומה ששמעת" : history.length ? "לפי מה ששמעת" : "לחץ על שיר כדי להתחיל");
   const grid = document.createElement("div");
   grid.className = "grid";
   recommended(8).forEach((t) => grid.appendChild(tile(t)));
   rec.appendChild(grid);
+
+  if (fav.length) {
+    const favSec = section("האמנים שאתה אוהב");
+    const fg = document.createElement("div");
+    fg.className = "browse";
+    fav.forEach((a) => fg.appendChild(artistCard(a)));
+    favSec.appendChild(fg);
+  }
 
   const pop = section("אמנים");
   const pg = document.createElement("div");
@@ -317,6 +357,16 @@ function headRow() {
 
 function renderLibrary() {
   viewEl.innerHTML = `<h1 class="greet">הספרייה שלך</h1>`;
+  const liked = likedTracks();
+  const likedCard = document.createElement("a");
+  likedCard.className = "lib-liked-card";
+  likedCard.href = "#/liked";
+  likedCard.innerHTML = `
+    <span class="lib-liked-art">${HEART_SOLID}</span>
+    <span class="lib-liked-copy"><b>שירים שאהבתי</b><span class="lib-liked-count"></span></span>
+    <span class="lib-liked-arrow" aria-hidden="true">‹</span>`;
+  likedCard.querySelector(".lib-liked-count").textContent = songsWord(liked.length);
+  viewEl.appendChild(likedCard);
   viewEl.appendChild(headRow());
   mountList(songs.map((_, i) => i));
 }
@@ -407,7 +457,8 @@ function renderNp(tr) {
   if (tr.src === "catalog") {
     more.innerHTML = `<h4 class="np-h">עוד של ${h(tr.a)}</h4><div class="np-list"></div>`;
     const list = more.querySelector(".np-list");
-    relatedTracks(tr).concat(recommended(10 - Math.min(6, relatedTracks(tr).length)))
+    const related = relatedTracks(tr);
+    related.concat(recommended(10 - Math.min(6, related.length)))
       .slice(0, 10)
       .forEach((t) => list.appendChild(npRow(t)));
   } else if (tr.src === "audius") {
@@ -472,6 +523,9 @@ el("fwd").addEventListener("click", () => window.history.forward());
 /* ---------- מנועי ניגון ---------- */
 function playTrack(tr, start) {
   if (!tr) return;
+  if (typeof window.wavoSmoothTransition !== "function" || window.wavoSmoothTransition()) {
+    try { stage.classList.add("switching"); setTimeout(() => stage.classList.remove("switching"), 260); } catch (e) {}
+  }
   if (!navigator.onLine) { try { stage.classList.add("note"); stage.innerHTML = "<p class=\"notice\">אין חיבור לאינטרנט — לא ניתן לנגן כרגע. השירים יפעלו כשתחזור לרשת.</p>"; } catch (e) {} return; }
   if (!autoSwitch) { triedUids = new Set(); triedKey = ""; }
   autoSwitch = false;
@@ -495,6 +549,8 @@ function playTrack(tr, start) {
   stage.classList.add("on");
   renderNp(tr);
   openNp(true);
+  updateMediaSession();
+  requestWakeLock();
   qPos = playQueue.findIndex((t) => t.uid === tr.uid);
   if (tr.src === "audius") playAudio(tr, start);
   else playYt(tr, start);
@@ -503,6 +559,7 @@ function playTrack(tr, start) {
 function playYt(tr, start) {
   engine = "yt";
   audioEl.pause();
+  audioEl.playbackRate = speed;
   if (!el("ytPlayer")) {
     stage.classList.remove("note");
     stage.innerHTML = '<div class="frame"><div id="ytPlayer"></div></div>';
@@ -550,15 +607,40 @@ function audioFail(tr, e) {
 }
 
 audioEl.addEventListener("playing", () => { spin(false); setPlaying(true); totTime.textContent = mmss(duration()); });
-audioEl.addEventListener("pause", () => setPlaying(false));
+audioEl.addEventListener("pause", () => { if (engine === "audio") setPlaying(false); });
 audioEl.addEventListener("waiting", () => spin(true));
-audioEl.addEventListener("ended", () => (repeat ? playTrack(track, true) : step(1)));
+audioEl.addEventListener("ended", () => (repeat ? playTrack(track, true) : autoNext()));
 audioEl.addEventListener("error", () => track && audioFail(track));
 
 function pushHistory(tr) {
   history = [tr, ...history.filter((t) => t.uid !== tr.uid)].slice(0, 24);
   save("wavo.history", history);
 }
+window.wavoLikedCount = () => likes.size;
+window.wavoClearHistory = () => {
+  history = [];
+  save("wavo.history", history);
+  if (typeof window.route === "function") window.route();
+};
+window.wavoResetUserData = () => {
+  history = [];
+  likes.clear();
+  savedTracks = {};
+  try { localStorage.removeItem("wavo.likes"); localStorage.removeItem("wavo.saved"); localStorage.removeItem("wavo.mylib"); } catch {}
+  try { audioEl.pause(); audioEl.removeAttribute("src"); audioEl.load(); } catch {}
+  try { if (yt && yt.pauseVideo) yt.pauseVideo(); } catch {}
+  track = null;
+  current = -1;
+  playQueue = [];
+  qPos = -1;
+  triedUids = new Set();
+  queue = songs.map((_, i) => i);
+  drawn = 0;
+  setPlaying(false);
+  syncLike();
+  if (typeof renderPlaylists === "function") renderPlaylists();
+  if (typeof window.route === "function") window.route();
+};
 
 function like(tr, btn) {
   const id = tr ? tr.uid : null;
@@ -629,7 +711,7 @@ function startApi() {
   if (!(window.YT && YT.Player) || !el("ytPlayer")) return;
   if (yt && yt.loadVideoById) {
     if (!wantAuto) { stopVerify(); return yt.cueVideoById(want); }
-    try { if (isTouch) yt.mute(); yt.setVolume(volume); yt.loadVideoById(want); } catch (e) {}
+    try { if (isTouch) yt.mute(); yt.setVolume(volume); yt.loadVideoById(want); if (yt.setPlaybackRate) yt.setPlaybackRate(speed); } catch (e) {}
     if (isTouch) setTimeout(() => { try { yt.unMute(); yt.setVolume(volume); } catch (e) {} }, 800);
     return verify();
   }
@@ -640,6 +722,7 @@ function startApi() {
     events: {
       onReady: (e) => {
         e.target.setVolume(volume);
+        try { e.target.setPlaybackRate(speed); } catch (err) {}
         if (!wantAuto) return;
         try { if (isTouch) e.target.mute(); e.target.playVideo(); } catch (err) {}
         verify();
@@ -692,18 +775,23 @@ function plainEmbed() {
 }
 
 function onYtState(e) {
+  if (engine !== "yt" || !track || !e || !e.target) return;
+  try {
+    const vd = e.target.getVideoData && e.target.getVideoData();
+    if (vd && vd.video_id && want && vd.video_id !== want) return;
+  } catch (err) {}
   if (e.data === 1) playedOnce = true;
   if (e.data === 1 || e.data === 2 || e.data === 3) stopVerify();
   const d = safe(() => e.target.getDuration(), 0);
   if (d) {
-    if (current >= 0) songs[current].d = d;
-    if (track) track.d = d;
+    track.d = d;
     totTime.textContent = mmss(d);
-    const r = track && document.querySelector(`.row[data-uid="${CSS.escape(track.uid)}"]`);
-    if (r) r.querySelector(".row-time").textContent = mmss(d);
+    const r = document.querySelector(`.row[data-uid="${CSS.escape(track.uid)}"]`);
+    const rt = r && r.querySelector(".row-time");
+    if (rt) rt.textContent = mmss(d);
   }
   setPlaying(e.data === 1);
-  if (e.data === 0 && playedOnce) (repeat ? playTrack(track, true) : step(1));
+  if (e.data === 0 && playedOnce) (repeat ? playTrack(track, true) : autoNext());
 }
 
 function onYtError(code) {
@@ -742,11 +830,22 @@ const safe = (fn, d) => { try { const v = fn(); return v == null || isNaN(v) ? d
 
 function step(dir) {
   const list = playQueue.length ? playQueue : songs.map((_, i) => localTrack(i));
-  if (shuffle) return playTrack(list[Math.floor(Math.random() * list.length)], true);
+  if (shuffle) {
+    const pool = list.length > 1 && track ? list.filter((t) => t.uid !== track.uid) : list;
+    return playTrack(pool[Math.floor(Math.random() * pool.length)], true);
+  }
   let p = qPos < 0 ? (track ? list.findIndex((t) => t.uid === track.uid) : -1) : qPos;
   if (p < 0) p = 0;
   else p = (p + dir + list.length) % list.length;
   playTrack(list[p], true);
+}
+
+/* סוף שיר: בוחר שיר לפי אמנים מועדפים, אהובים, היסטוריה ודמיון — לא לפי התור */
+function autoNext() {
+  if (typeof window.wavoAutoPlay === "function" && !window.wavoAutoPlay()) { setPlaying(false); return; }
+  const pick = recommended(1, { excludeUid: track && track.uid, artist: track && track.a })[0];
+  if (pick) playTrack(pick, true);
+  else step(1);
 }
 
 function note(id, code) {
@@ -899,3 +998,59 @@ el("npLike").innerHTML = HEART;
 renderPlaylists();
 checkProviders();
 route();
+
+
+/* ---------- speed control ---------- */
+const SPEEDS = [0.75, 1, 1.25, 1.5];
+function setSpeed(r) {
+  speed = r;
+  if (typeof window.wavoSetSpeed === "function") window.wavoSetSpeed(r);
+  try { audioEl.playbackRate = r; } catch (e) {}
+  try { if (yt && yt.setPlaybackRate) yt.setPlaybackRate(r); } catch (e) {}
+  const b = document.getElementById("speed");
+  if (b) b.textContent = (r === 1 ? "1×" : r + "×");
+}
+(function bindSpeed() {
+  const b = document.getElementById("speed");
+  if (!b) return setTimeout(bindSpeed, 300);
+  b.addEventListener("click", () => {
+    const i = SPEEDS.indexOf(speed);
+    setSpeed(SPEEDS[(i + 1) % SPEEDS.length]);
+    navigator.vibrate?.(6);
+  });
+})();
+
+/* ---------- media session (lock screen controls) ---------- */
+function updateMediaSession() {
+  if (!("mediaSession" in navigator) || !track) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.t || "",
+      artist: track.a || "",
+      album: "WAVO",
+      artwork: [{ src: track.art || "", sizes: "512x512", type: "image/jpeg" }],
+    });
+  } catch (e) {}
+  navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+  try { navigator.mediaSession.setActionHandler("play", () => { setPlaying(true); if (yt && yt.playVideo) yt.playVideo(); else audioEl.play().catch(()=>{}); }); } catch (e) {}
+  try { navigator.mediaSession.setActionHandler("pause", () => { setPlaying(false); if (yt && yt.pauseVideo) yt.pauseVideo(); else audioEl.pause(); }); } catch (e) {}
+  try { navigator.mediaSession.setActionHandler("previoustrack", () => step(-1)); } catch (e) {}
+  try { navigator.mediaSession.setActionHandler("nexttrack", () => step(1)); } catch (e) {}
+  try { navigator.mediaSession.setActionHandler("seekto", (d) => { if (d.seekTime != null) { if (engine === "audio") audioEl.currentTime = d.seekTime; else if (yt && yt.seekTo) yt.seekTo(d.seekTime, true); } }); } catch (e) {}
+}
+// update playback state on play/pause
+const _setPlaying = setPlaying;
+setPlaying = function (on) {
+  _setPlaying(on);
+  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = on ? "playing" : "paused";
+  document.querySelectorAll(".mini-cover, .np-cover").forEach((c) => c.classList.toggle("playing", !!on));
+};
+
+/* ---------- wake lock (keep screen on while playing) ---------- */
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator) || wakeLock) return;
+  try { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } catch (e) { wakeLock = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && playing) requestWakeLock();
+});

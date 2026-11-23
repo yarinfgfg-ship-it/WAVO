@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-declare global {
-  interface Window {
-    __wavoBooted?: boolean;
-  }
-}
+const HTML_VERSION = 58;
+const SCRIPT_VERSION = 67;
+const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js", "welcome.js"];
 
-const HTML_VERSION = 50;
-const SCRIPT_VERSION = 49;
-const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js"];
+// Module scope intentionally survives React's dev double-mount. A reload here
+// would re-mount and reload again forever, so boot exactly once per page load.
+let booted = false;
+let wavoMarkup = "";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,38 +25,37 @@ export const Route = createFileRoute("/")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/style.css?v=19" },
-      { rel: "stylesheet", href: "/wavo/extras.css?v=13" },
-      { rel: "stylesheet", href: "/wavo/polish.css?v=11" },
+      { rel: "stylesheet", href: "/wavo/style.css?v=21" },
+      { rel: "stylesheet", href: "/wavo/extras.css?v=15" },
+      { rel: "stylesheet", href: "/wavo/polish.css?v=13" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/fresh.css?v=17" },
+      { rel: "stylesheet", href: "/wavo/fresh.css?v=31" },
     ],
   }),
   component: Wavo,
 });
 
-// The player is plain JS sharing globals across its scripts, so it is injected
-// once and the scripts are appended in order rather than bundled as modules.
-// There is no account system: the library is kept on the device.
 function Wavo() {
   useEffect(() => {
-    let cancelled = false;
-    if (window.__wavoBooted) {
-      window.location.reload();
-      return;
-    }
-    window.__wavoBooted = true;
+    const root = document.getElementById("wavo-root");
+    if (!root) return;
+
+    document.documentElement.lang = "he";
+    document.documentElement.dir = "rtl";
+    if (wavoMarkup) root.innerHTML = wavoMarkup;
+
+    if (booted) return;
+    booted = true;
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/sw.js?v=" + HTML_VERSION).catch(() => {});
     }
 
     (async () => {
       const html = await (await fetch(`/wavo/app.html?v=${HTML_VERSION}`)).text();
-      if (cancelled) return;
       const doc = new DOMParser().parseFromString(html, "text/html");
       doc.querySelectorAll("script").forEach((node) => node.remove());
       doc.querySelectorAll("img[src]").forEach((img) => {
@@ -65,12 +63,10 @@ function Wavo() {
         if (!/^(https?:|\/)/.test(src)) img.setAttribute("src", `/wavo/${src}`);
       });
 
-      document.documentElement.lang = "he";
-      document.documentElement.dir = "rtl";
+      wavoMarkup = doc.body.innerHTML;
       document.body.className = doc.body.className;
-      const root = document.getElementById("wavo-root");
-      if (!root) return;
-      root.innerHTML = doc.body.innerHTML;
+      const currentRoot = document.getElementById("wavo-root");
+      if (currentRoot) currentRoot.innerHTML = wavoMarkup;
 
       for (const file of SCRIPTS) {
         await new Promise<void>((resolve) => {
@@ -83,10 +79,6 @@ function Wavo() {
         });
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   return <div id="wavo-root" style={{ display: "contents" }} />;

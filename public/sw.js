@@ -1,5 +1,5 @@
 /* WAVO service worker — caches the app shell for offline use. */
-const CACHE = "wavo-shell-v1";
+const CACHE = "wavo-shell-v2";
 const ASSETS = [
   "/", "/index.html",
   "/wavo/app.html", "/wavo/style.css", "/wavo/extras.css", "/wavo/polish.css",
@@ -21,6 +21,23 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   // network-first for API and cross-origin (YouTube, etc.)
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  // network-first for pages and HTML (always fresh when online)
+  const isHTML = req.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname === "/" || url.pathname === "";
+  if (isHTML) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+  // stale-while-revalidate for static assets
   e.respondWith(
     caches.match(req).then((cached) => {
       const net = fetch(req).then((res) => {
