@@ -968,15 +968,8 @@
 
   function openSettings() {
     window.openSettings = openSettings;
-    const now = Date.now();
     const old = document.getElementById("settingsModal");
-    if (old) {
-      // multiple handlers fire on one click (inline onclick + capture delegation + wireGear);
-      // ignore re-opens from the same click, allow real toggle on a later click
-      if (now - (window.__wavoSetOpenAt || 0) < 600) return;
-      old.remove(); return;
-    }
-    window.__wavoSetOpenAt = now;
+    if (old) { old.remove(); return; }
     const m = document.createElement("div");
     m.id = "settingsModal";
     m.className = "modal on";
@@ -1021,6 +1014,7 @@
             </select></div>
           <div class="set-row"><span>איפוס חשבון</span><button id="setResetAccount" class="lib-add danger">התחל מחדש</button></div>
           <div class="set-row"><span>האמנים המועדפים שלי</span><button id="setFavorites" class="lib-add">בחר אמנים</button></div>
+          <div class="set-row"><span>שם</span><button id="setChangeName" class="lib-add">שנה שם</button></div>
           <div class="set-row"><button id="setClearHistory" class="lib-add">נקה היסטוריה</button></div>
           <div class="set-row"><button id="setClearCache" class="lib-add">נקה מטמון</button></div>
           <div class="set-row"><button id="setReset" class="lib-add">אפס הגדרות</button></div>
@@ -1057,6 +1051,8 @@
       favBtn.textContent = n ? `שנה (${n})` : "בחר אמנים";
       favBtn.onclick = () => { m.remove(); if (typeof window.wavoChooseFavorites === "function") window.wavoChooseFavorites(); };
     }
+    const nameBtn = m.querySelector("#setChangeName");
+    if (nameBtn) nameBtn.onclick = () => { m.remove(); if (typeof window.wavoChangeName === "function") window.wavoChangeName(); };
     m.querySelector("#setClearHistory").onclick = () => {
       try { localStorage.removeItem("wavo.history"); } catch {}
       if (typeof window.wavoClearHistory === "function") window.wavoClearHistory();
@@ -1083,14 +1079,14 @@
   if (S.sleep) setSleep(S.sleep);
   if (S.startView && S.startView !== "home") setTimeout(() => { location.hash = "#/" + S.startView; }, 120);
 
-  // wire gear button
-  function wireGear() {
-    window.openSettings = openSettings; // export at load (same scope as openSettings)
-    const btn = document.getElementById("settingsBtn");
-    if (!btn) return setTimeout(wireGear, 300);
-    btn.addEventListener("click", (e) => { e.stopPropagation(); openSettings(); });
+  // Export early: the shell is injected before the scripts load, so a click on
+  // the gear can arrive before this file runs. The inline onclick records that
+  // click in __wavoSettingsPending; replay it once openSettings exists.
+  window.openSettings = openSettings;
+  if (window.__wavoSettingsPending) {
+    window.__wavoSettingsPending = false;
+    setTimeout(openSettings, 0);
   }
-  wireGear();
 })();
 
 /* settings button: capture-phase delegation (works for SVG children too) */
@@ -1106,5 +1102,8 @@ document.addEventListener("click", (e) => {
   if (!isSettingsTarget(e.target)) return;
   e.preventDefault();
   e.stopPropagation();
+  // overlays sit above the topbar and would otherwise eat the gear click
+  if (typeof closeMenu === "function") closeMenu();
+  document.querySelectorAll(".lyrics.full").forEach((p) => p.classList.remove("full"));
   if (typeof window.openSettings === "function") window.openSettings();
 }, true);

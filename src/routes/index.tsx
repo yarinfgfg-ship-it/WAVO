@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-const HTML_VERSION = 58;
-const SCRIPT_VERSION = 67;
+const HTML_VERSION = 59;
+const SCRIPT_VERSION = 68;
 const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js", "welcome.js"];
 
 // Module scope intentionally survives React's dev double-mount. A reload here
