@@ -772,3 +772,48 @@ body:not(.is-phone) #settingsBtnPhone, body:not(.is-phone) #lyrBtnPhone { displa
   .wl-ball, .wl-shadow, .wl-reveal, .wl-caret { animation: none !important; }
   .wl-ball, .wl-shadow, .wl-reveal { opacity: 1 !important; transform: none !important; }
 }
+
+/* ===== phone: thumb-sized controls (final pass) =====
+   Loaded last so these win over style.css / polish.css. Every interactive
+   target on a phone is >= 52px, with the main play button at 66px. */
+body.is-phone { --player-h: 84px; --tab-h: 68px; }
+
+body.is-phone .ctl,
+body.is-phone .icon-btn,
+body.is-phone .icon-btn.sm,
+body.is-phone .np-close,
+body.is-phone #npLike,
+body.is-phone .phone-lyr,
+body.is-phone .phone-settings,
+body.is-phone .rail-btn,
+body.is-phone .lyr-fs,
+body.is-phone .lyr-find,
+body.is-phone .lyr-sync button,
+body.is-phone .modal-close {
+  width: 52px !important; height: 52px !important;
+  min-width: 52px !important; min-height: 52px !important;
+  border-radius: 50%;
+}
+body.is-phone .ctl svg { width: 22px !important; height: 22px !important; }
+body.is-phone .ctl.sm svg, body.is-phone .icon-btn.sm svg { width: 20px !important; height: 20px !important; }
+body.is-phone .ctl.main {
+  width: 66px !important; height: 66px !important;
+  min-width: 66px !important; min-height: 66px !important;
+}
+body.is-phone .ctl.main svg { width: 28px !important; height: 28px !important; }
+body.is-phone .player .btns { gap: 10px !important; }
+body.is-phone .player { padding-block: 8px !important; }
+body.is-phone .mini-cover { width: 50px !important; height: 50px !important; flex-basis: 50px !important; }
+
+body.is-phone .tabbar a, body.is-phone .tabbar button { min-height: 60px; padding: 10px 4px 8px; font-size: .74rem; }
+body.is-phone .tabbar svg { width: 26px !important; height: 26px !important; }
+
+body.is-phone .np-fab { width: 60px !important; height: 60px !important; }
+body.is-phone .play-big { width: 66px !important; height: 66px !important; }
+body.is-phone .gbtn, body.is-phone .wl-go, body.is-phone .wl-skip { min-height: 54px !important; font-size: 16px !important; }
+body.is-phone .wl-artist, body.is-phone .row { min-height: 58px !important; }
+body.is-phone .wl-artist-pic { width: 42px !important; height: 42px !important; }
+body.is-phone .ctx button, body.is-phone .set-seg button { min-height: 50px !important; }
+body.is-phone .set-switch { width: 52px !important; height: 30px !important; }
+body.is-phone .set-switch span::before { width: 24px !important; height: 24px !important; }
+body.is-phone .set-switch input:checked + span::before { transform: translateX(22px) !important; }

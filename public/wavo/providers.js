@@ -192,6 +192,15 @@ function wordScore(q, words) {
   }
   return best;
 }
+/* People often type these artists' names in Latin (or as "ALLA"). */
+const NAME_ALIASES = {
+  alla: "אלה לי",
+  "ella lee": "אלה לי",
+  "itay levi": "איתי לוי",
+  "eyal golan": "אייל גולן",
+};
+const aliasQuery = (q) => NAME_ALIASES[normKey(q, "").trim()] || q;
+
 const SONG_WORDS = [];
 function fuzzyScore(q, s, i) {
   const words = SONG_WORDS[i] || (SONG_WORDS[i] = normKey(s.t, s.a).split(" "));
@@ -207,8 +216,9 @@ function fuzzyScore(q, s, i) {
   return sc;
 }
 function catalogSearch(q, n = 20) {
+  const query = aliasQuery(q);
   return songs
-    .map((s, i) => ({ s, i, sc: fuzzyScore(q, s, i) }))
+    .map((s, i) => ({ s, i, sc: fuzzyScore(query, s, i) }))
     .filter((x) => x.sc >= 0.6)
     .sort((a, b) => b.sc - a.sc)
     .filter((x, _, arr) => x.sc >= arr[0].sc * 0.6)

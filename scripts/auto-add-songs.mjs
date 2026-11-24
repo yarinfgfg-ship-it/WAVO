@@ -11,6 +11,7 @@
    live LRCLIB lookup). */
 import fs from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -18,14 +19,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const wavoDir = path.join(root, "public", "wavo");
 const dryRun = process.argv.includes("--dry-run");
 
-const parseJs = (file) => {
+/* These files contain extra append/dedupe blocks after the base array,
+   so evaluate them instead of JSON.parse-ing just the first statement. */
+const parseJs = (file, name) => {
   const text = fs.readFileSync(file, "utf8");
-  return JSON.parse(text.slice(text.indexOf("=") + 1).trim().replace(/;$/, ""));
+  return vm.runInNewContext(text + `\n;${name}`, {}, { timeout: 15000 });
 };
 
 const songsFile = path.join(wavoDir, "songs.js");
-const songs = parseJs(songsFile);
-const channels = parseJs(path.join(wavoDir, "channels.js"));
+const songs = parseJs(songsFile, "songs");
+const channels = parseJs(path.join(wavoDir, "channels.js"), "channels");
 console.log(`catalog: ${songs.length} songs, ${Object.keys(channels).length} mapped artists`);
 
 /* ---- network helpers ---- */
@@ -195,7 +198,14 @@ console.log("skipped:", JSON.stringify(skipped));
 if (!added.length || dryRun) process.exit(0);
 
 /* ---- write the catalog + bump cache-bust versions ---- */
-fs.writeFileSync(songsFile, "const songs = " + JSON.stringify(songs) + ";\n", "utf8");
+/* Append a deduping block so the verified base array and earlier append
+   blocks stay intact (and re-runs remain safe). */
+const lines = added.map((s) => "  " + JSON.stringify(s)).join(",\n");
+fs.appendFileSync(
+  songsFile,
+  `\n/* Auto-added uploads — deduped by YouTube ID. */\n{\n  const __autoIds = new Set(songs.map((s) => s.yt));\n  [\n${lines}\n  ].forEach((s) => { if (!__autoIds.has(s.yt)) { songs.push(s); __autoIds.add(s.yt); } });\n}\n`,
+  "utf8"
+);
 
 const bump = (file, re) => {
   const t = fs.readFileSync(file, "utf8");

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 const HTML_VERSION = 59;
-const SCRIPT_VERSION = 68;
+const SCRIPT_VERSION = 69;
 const SCRIPTS = ["songs.js", "channels.js", "providers.js", "script.js", "extras.js", "mobile.js", "welcome.js"];
 
 // Module scope intentionally survives React's dev double-mount. A reload here
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap",
       },
-      { rel: "stylesheet", href: "/wavo/fresh.css?v=31" },
+      { rel: "stylesheet", href: "/wavo/fresh.css?v=32" },
     ],
   }),
   component: Wavo,
